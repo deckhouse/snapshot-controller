@@ -1,4 +1,4 @@
-project: csi-ceph
+project: snapshot-controller
 configVersion: 1
 build:
   imageSpec:
