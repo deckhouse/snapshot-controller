@@ -1,0 +1,62 @@
+---
+image: {{ $.ImageName }}-src-artifact
+fromImage: builder/src
+final: false
+
+git:
+  - add: /
+    to: /src
+    includePaths:
+      - images/{{ $.ImageName }}
+    stageDependencies:
+      install:
+        - '**/*'
+    excludePaths:
+      - images/{{ $.ImageName }}/werf.yaml
+
+shell:
+  install:
+    - cd /src
+    - git clone --depth 1 --branch {{ $.Versions.SNAPSHOT_CONTROLLER }} {{ env "SOURCE_REPO" }}/kubernetes-csi/external-snapshotter.git .
+    - for patchfile in /patches/*.patch ; do echo -n "Apply ${patchfile} ... "; git apply ${patchfile}; done
+    - rm -rf vendor
+    - rm -rf .git
+
+---
+image: {{ $.ImageName }}-golang-artifact
+fromImage: builder/golang-alpine
+final: false
+
+import:
+- image: {{ $.ImageName }}-src-artifact
+  add: /src
+  to: /src
+  before: install
+
+mount:
+  - fromPath: ~/go-pkg-cache
+    to: /go/pkg
+
+shell:
+  beforeInstall:    
+    - apk add --no-cache make bash git
+  install:
+    - export GO_VERSION={{ env "GOLANG_VERSION" }} CGO_ENABLED=0 GOOS=linux GOARCH=amd64
+    - export GOPROXY={{ env "GOPROXY" }}
+    - cd /src
+    - make build
+    - cp bin/snapshot-controller bin/csi-snapshotter bin/snapshot-validation-webhook /
+    - chown 64535:64535 /snapshot-controller /csi-snapshotter /snapshot-validation-webhook
+    - chmod 0755 /snapshot-controller /csi-snapshotter /snapshot-validation-webhook
+
+---
+image: {{ $.ImageName }}
+fromImage: base/distroless
+import:
+- image: {{ $.ImageName }}-golang-artifact
+  add: /snapshot-controller
+  to: /snapshot-controller
+  before: setup
+imageSpec:
+  config:
+    entrypoint: ["/snapshot-controller"]

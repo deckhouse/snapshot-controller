@@ -1,0 +1,8 @@
+# component versions
+{{- $versions := dict }}
+{{- $_ := set $versions "SNAPSHOT_CONTROLLER" "v8.1.1" }}
+
+{{- $_ := set $ "VERSIONS" $versions }}
+
+# custom constants
+{{- $_ := set $ "ALT_BASE_PACKAGES" "openssl libtirpc tzdata" }}
