@@ -16,11 +16,12 @@ git:
 
 shell:
   install:
-    - cd /src
-    - git clone --depth 1 --branch {{ $.Versions.SNAPSHOT_CONTROLLER }} {{ env "SOURCE_REPO" }}/kubernetes-csi/external-snapshotter.git .
-    - for patchfile in /patches/*.patch ; do echo -n "Apply ${patchfile} ... "; git apply ${patchfile}; done
-    - rm -rf vendor
-    - rm -rf .git
+    - git clone --depth 1 --branch {{ $.Versions.SNAPSHOT_CONTROLLER }} {{ env "SOURCE_REPO" }}/kubernetes-csi/external-snapshotter.git /src/snapshot-controller
+    - cd /src/snapshot-controller
+    - for patchfile in /src/images/snapshot-controller/patches/*.patch ; do echo -n "Apply ${patchfile} ... "; git apply ${patchfile}; done
+    - rm -rf /src/images/snapshot-controller/patches
+    - rm -rf /src/snapshot-controller/vendor
+    - rm -rf /src/snapshot-controller/.git
 
 ---
 image: {{ $.ImageName }}-golang-artifact
