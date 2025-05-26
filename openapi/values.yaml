@@ -11,7 +11,7 @@ properties:
         default: []
         items:
           type: string
-      customWebhookCert:
+      snapshotValidationWebhookCert:
         type: object
         default: {}
         x-required-for-helm:

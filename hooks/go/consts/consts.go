@@ -20,5 +20,5 @@ const (
 	ModuleName      	string = "snapshotController"
 	ModuleNamespace 	string = "d8-snapshot-controller"
 	ModulePluralName	string = "snapshot-controller"
-	WebhookCertCn   	string = "webhooks"
+	WebhookCertCn   	string = "snapshot-validation-webhook"
 )
