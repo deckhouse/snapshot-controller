@@ -12,14 +12,6 @@ git:
         - '**/go.sum'
       beforeSetup:
         - '**/*.go'
-  - add: /api
-    to: /usr/src/app/api
-    stageDependencies:
-      install:
-        - '**/go.mod'
-        - '**/go.sum'
-      beforeSetup:
-        - '**/*.go'
 
 mount:
 - fromPath: ~/go-pkg-cache
