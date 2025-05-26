@@ -1,7 +1,12 @@
 crds
 docs
-images
-hooks
-openapi
-template_tests
 enabled
+hooks
+images
+lib
+Makefile
+openapi
+*.md
+release.yaml
+werf*.yaml
+NOTES.txt
