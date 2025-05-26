@@ -1,5 +1,5 @@
 name: snapshot-controller
-weight: 37
+weight: 900
 subsystems:
   - storage
   - infrastructure
