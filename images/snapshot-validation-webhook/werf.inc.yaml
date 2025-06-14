@@ -49,7 +49,7 @@ shell:
   beforeInstall:    
     - apk add --no-cache make bash git
   install:
-    - export GO_VERSION=$(cat /run/secrets/GOLANG_VERSION) CGO_ENABLED=0 GOOS=linux GOARCH=amd64
+    - GO_VERSION=$(cat /run/secrets/GOLANG_VERSION) CGO_ENABLED=0 GOOS=linux GOARCH=amd64
     - GOPROXY=$(cat /run/secrets/GOPROXY) go mod download
     - cd /src/snapshot-controller
     - make build
