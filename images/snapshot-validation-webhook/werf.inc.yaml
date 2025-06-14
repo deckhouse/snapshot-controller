@@ -49,9 +49,9 @@ shell:
   beforeInstall:    
     - apk add --no-cache make bash git
   install:
+    - cd /src/snapshot-controller
     - GO_VERSION=$(cat /run/secrets/GOLANG_VERSION) CGO_ENABLED=0 GOOS=linux GOARCH=amd64
     - GOPROXY=$(cat /run/secrets/GOPROXY) go mod download
-    - cd /src/snapshot-controller
     - make build
     - cp bin/snapshot-controller bin/csi-snapshotter bin/snapshot-validation-webhook /
     - chown 64535:64535 /snapshot-controller /csi-snapshotter /snapshot-validation-webhook
