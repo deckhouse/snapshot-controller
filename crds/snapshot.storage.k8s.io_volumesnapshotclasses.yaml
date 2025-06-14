@@ -8,6 +8,9 @@ metadata:
     api-approved.kubernetes.io: "https://github.com/kubernetes-csi/external-snapshotter/pull/419"
   creationTimestamp: null
   name: volumesnapshotclasses.snapshot.storage.k8s.io
+  labels:
+    heritage: deckhouse
+    module: snapshot-controller
 spec:
   group: snapshot.storage.k8s.io
   names:
