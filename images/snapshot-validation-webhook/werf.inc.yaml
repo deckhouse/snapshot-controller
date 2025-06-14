@@ -65,10 +65,6 @@ import:
     add: /{{ $.ImageName }}
     to: /{{ $.ImageName }}
     before: setup
-  - image: {{ .ModuleNamePrefix }}{{ .ImageName }}-binaries-artifact
-    add: /relocate
-    to: /
-    before: setup
 
 imageSpec:
   config:
