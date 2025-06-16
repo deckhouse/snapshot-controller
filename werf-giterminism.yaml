@@ -11,6 +11,11 @@ config:
       - MODULE_EDITION
     allowUncommittedFiles:
       - "base_images.yml"
+  secrets:
+    allowValueIds:
+      - GOPROXY
+      - GOLANG_VERSION
+      - SOURCE_REPO
   stapel:
     mount:
       allowBuildDir: true

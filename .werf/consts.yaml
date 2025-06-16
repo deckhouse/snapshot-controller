@@ -1,8 +1,8 @@
+# Edition module settings, default ce
+{{- $_ := set . "MODULE_EDITION" (env "MODULE_EDITION" "ce") }}
+
 # component versions
 {{- $versions := dict }}
 {{- $_ := set $versions "SNAPSHOT_CONTROLLER" "v8.1.1" }}
 
-{{- $_ := set $ "VERSIONS" $versions }}
-
-# custom constants
-{{- $_ := set $ "ALT_BASE_PACKAGES" "openssl libtirpc tzdata" }}
+{{- $_ := set . "VERSIONS" $versions }}

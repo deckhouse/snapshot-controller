@@ -1,63 +1,71 @@
 ---
-image: {{ $.ImageName }}-src-artifact
+# do not remove this image: used in external audits (DKP CSE)
+image: {{ .ModuleNamePrefix }}{{ .ImageName }}-src-artifact
 fromImage: builder/src
 final: false
-
 git:
-  - add: /
-    to: /src
+  - add: {{ .ModuleDir }}
+    to: /patches
     includePaths:
-      - images/{{ $.ImageName }}
+      - images/{{ $.ImageName }}/patches
     stageDependencies:
       install:
         - '**/*'
-    excludePaths:
-      - images/{{ $.ImageName }}/werf.yaml
+
+secrets:
+- id: SOURCE_REPO
+  value: {{ .SOURCE_REPO }}
 
 shell:
   install:
-    - git clone --depth 1 --branch {{ $.Versions.SNAPSHOT_CONTROLLER }} {{ env "SOURCE_REPO" }}/kubernetes-csi/external-snapshotter.git /src/snapshot-controller
+    - git clone --depth 1 --branch {{ $.Versions.SNAPSHOT_CONTROLLER }} $(cat /run/secrets/SOURCE_REPO)/kubernetes-csi/external-snapshotter.git /src/snapshot-controller
     - cd /src/snapshot-controller
-    - for patchfile in /src/images/{{ $.ImageName }}/patches/*.patch ; do echo -n "Apply ${patchfile} ... "; git apply ${patchfile}; done
+    - for patchfile in /patches/images/{{ $.ImageName }}/patches/*.patch; do echo "Apply ${patchfile} ... "; git apply ${patchfile} --verbose; done
     - rm -rf /src/images/{{ $.ImageName }}/patches
     - rm -rf /src/snapshot-controller/vendor
     - rm -rf /src/snapshot-controller/.git
 
 ---
-image: {{ $.ImageName }}-golang-artifact
+image: {{ .ModuleNamePrefix }}{{ .ImageName }}-golang-artifact
 fromImage: builder/golang-alpine
 final: false
 
 import:
-- image: {{ $.ImageName }}-src-artifact
-  add: /src
-  to: /src
-  before: install
+  - image: {{ .ModuleNamePrefix }}{{ .ImageName }}-src-artifact
+    add: /src
+    to: /src
+    before: install
 
 mount:
-  - fromPath: ~/go-pkg-cache
-    to: /go/pkg
+{{ include "mount points for golang builds" . }}
+
+secrets:
+- id: GOLANG_VERSION
+  value: {{ .GOLANG_VERSION }}
+- id: GOPROXY
+  value: {{ .GOPROXY }}
 
 shell:
   beforeInstall:    
     - apk add --no-cache make bash git
   install:
-    - export GO_VERSION={{ env "GOLANG_VERSION" }} CGO_ENABLED=0 GOOS=linux GOARCH=amd64
-    - export GOPROXY={{ env "GOPROXY" }}
     - cd /src/snapshot-controller
+    - GO_VERSION=$(cat /run/secrets/GOLANG_VERSION) CGO_ENABLED=0 GOOS=linux GOARCH=amd64
+    - GOPROXY=$(cat /run/secrets/GOPROXY) go mod download
     - make build
     - cp bin/snapshot-controller bin/csi-snapshotter bin/snapshot-validation-webhook /
     - chown 64535:64535 /snapshot-controller /csi-snapshotter /snapshot-validation-webhook
     - chmod 0755 /snapshot-controller /csi-snapshotter /snapshot-validation-webhook
 
 ---
-image: {{ $.ImageName }}
+image: {{ .ModuleNamePrefix }}{{ .ImageName }}
 fromImage: base/distroless
 import:
-- image: {{ $.ImageName }}-golang-artifact
-  add: /snapshot-validation-webhook
-  to: /snapshot-validation-webhook
-  before: setup
+  - image: {{ .ModuleNamePrefix }}{{ .ImageName }}-golang-artifact
+    add: /{{ $.ImageName }}
+    to: /{{ $.ImageName }}
+    before: setup
+
 imageSpec:
   config:
-    entrypoint: ["/snapshot-validation-webhook"]
+    entrypoint: ["/{{ $.ImageName }}"]
