@@ -93,6 +93,16 @@ spec:
         ports:
         - containerPort: 8080
           name: https-metrics
+        livenessProbe:
+          httpGet:
+            path: /livez
+            port: 8080
+            scheme: HTTPS
+        readinessProbe:
+          httpGet:
+            path: /livez
+            port: 8080
+            scheme: HTTPS
         env:
           - name: KUBE_RBAC_PROXY_LISTEN_ADDRESS
             valueFrom:

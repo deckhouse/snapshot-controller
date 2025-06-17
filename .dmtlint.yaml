@@ -4,9 +4,6 @@ linters-settings:
       liveness-probe:
         - kind: Deployment
           name: snapshot-controller
-          container: kube-rbac-proxy
-        - kind: Deployment
-          name: snapshot-controller
           container: snapshot-controller
         - kind: Deployment
           name: snapshot-controller
@@ -15,9 +12,6 @@ linters-settings:
           name: snapshot-validation-webhook
           container: snapshot-validation
       readiness-probe:
-        - kind: Deployment
-          name: snapshot-controller
-          container: kube-rbac-proxy
         - kind: Deployment
           name: snapshot-controller
           container: snapshot-controller
