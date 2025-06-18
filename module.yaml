@@ -1,4 +1,5 @@
 name: snapshot-controller
+stage: "General Availability"
 weight: 900
 subsystems:
   - storage
