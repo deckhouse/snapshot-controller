@@ -6,18 +6,12 @@ linters-settings:
           name: snapshot-controller
           container: snapshot-controller
         - kind: Deployment
-          name: snapshot-controller
-          container: snapshot-validation
-        - kind: Deployment
           name: snapshot-validation-webhook
           container: snapshot-validation
       readiness-probe:
         - kind: Deployment
           name: snapshot-controller
           container: snapshot-controller
-        - kind: Deployment
-          name: snapshot-controller
-          container: snapshot-validation
         - kind: Deployment
           name: snapshot-validation-webhook
           container: snapshot-validation
