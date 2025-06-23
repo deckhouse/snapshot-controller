@@ -28,13 +28,6 @@ import (
 	types "k8s.io/apimachinery/pkg/types"
 )
 
-const (
-	annBetaStorageProvisioner = "volume.beta.kubernetes.io/storage-provisioner"
-	annStorageProvisioner     = "volume.kubernetes.io/storage-provisioner"
-	csiAddress                = "local.csi.storage.deckhouse.io"
-	schedulerName             = "sds-local-volume"
-)
-
 func VolumeSnapshotMutate(ctx context.Context, _ *model.AdmissionReview, obj metav1.Object) (*kwhmutating.MutatorResult, error) {
 	snapshot, ok := obj.(*snapshotv1.VolumeSnapshot)
 	if !ok {
