@@ -67,7 +67,6 @@
       annotations:
         plk_protocol_version: "1"
         plk_markup_format: "markdown"
-        plk_labels_as_annotations: "pod"
         plk_create_group_if_not_exists__d8_snapshot_controller_health: "D8SnapshotControllerHealth,tier=~tier,prometheus=deckhouse,kubernetes=~kubernetes"
         plk_grouped_by__d8_snapshot_controller_health: "D8SnapshotControllerHealth,tier=~tier,prometheus=deckhouse,kubernetes=~kubernetes"
         summary: Snapshot-controller Pod is NOT Ready.
