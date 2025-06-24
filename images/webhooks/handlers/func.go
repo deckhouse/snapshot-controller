@@ -21,11 +21,14 @@ import (
 	"net/http"
 	"os"
 
+	snapshotv1 "github.com/kubernetes-csi/external-snapshotter/client/v6/apis/volumesnapshot/v1"
 	kwhhttp "github.com/slok/kubewebhook/v2/pkg/http"
 	"github.com/slok/kubewebhook/v2/pkg/log"
 	"github.com/slok/kubewebhook/v2/pkg/model"
 	kwhmutating "github.com/slok/kubewebhook/v2/pkg/webhook/mutating"
+	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
+	storagev1 "k8s.io/api/storage/v1"
 	sv1 "k8s.io/api/storage/v1"
 	extv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -36,9 +39,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	d8commonapi "github.com/deckhouse/sds-common-lib/api/v1alpha1"
-	snapshotv1 "github.com/kubernetes-csi/external-snapshotter/client/v6/apis/volumesnapshot/v1"
-	corev1 "k8s.io/api/core/v1"
-	storagev1 "k8s.io/api/storage/v1"
 )
 
 func NewKubeClient(kubeconfigPath string) (client.Client, error) {

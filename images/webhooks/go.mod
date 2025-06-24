@@ -13,7 +13,11 @@ require (
 	sigs.k8s.io/controller-runtime v0.20.4
 )
 
-require k8s.io/klog/v2 v2.130.1 // indirect
+require (
+	github.com/fsnotify/fsnotify v1.8.0 // indirect
+	github.com/stretchr/testify v1.10.0 // indirect
+	k8s.io/klog/v2 v2.130.1 // indirect
+)
 
 require (
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect

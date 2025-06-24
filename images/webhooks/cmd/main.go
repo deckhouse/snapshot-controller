@@ -22,10 +22,11 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/deckhouse/snapshot-controller/images/webhooks/handlers"
+	snapshotv1 "github.com/kubernetes-csi/external-snapshotter/client/v6/apis/volumesnapshot/v1"
 	"github.com/sirupsen/logrus"
 	kwhlogrus "github.com/slok/kubewebhook/v2/pkg/log/logrus"
-	snapshotv1 "github.com/kubernetes-csi/external-snapshotter/client/v6/apis/volumesnapshot/v1"
+
+	"github.com/deckhouse/snapshot-controller/images/webhooks/handlers"
 )
 
 type config struct {
@@ -56,7 +57,7 @@ func initFlags() (config, error) {
 }
 
 const (
-	port                  = ":8443"
+	port                    = ":8443"
 	volumeSnapshotMutatorID = "volumeSnapshotMutation"
 )
 
