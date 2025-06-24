@@ -88,7 +88,7 @@ func VolumeSnapshotMutate(ctx context.Context, _ *model.AdmissionReview, obj met
 		}
 		vscDict[vscItem.Driver] = append(vscDict[vscItem.Driver], vscItem.Name)
 
-		if vscItem.Parameters["storageClassName"] == *pvc.Spec.StorageClassName {
+		if vscItem.Name == *pvc.Spec.StorageClassName {
 			snapshot.Spec.VolumeSnapshotClassName = &vscItem.Name
 			log.Info("VolumeSnapshotMutate: found matching VolumeSnapshotClass", "name", vscItem.Name, "driver", vscItem.Driver)
 			return &kwhmutating.MutatorResult{
