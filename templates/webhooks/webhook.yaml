@@ -1,0 +1,26 @@
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingWebhookConfiguration
+metadata:
+  name: "d8-{{ .Chart.Name }}-volume-snapshot-mutation"
+  labels:
+    heritage: deckhouse
+    module: sds-local-volume
+webhooks:
+  - name: "d8-{{ .Chart.Name }}-volume-snapshot-mutation.storage.deckhouse.io"
+    failurePolicy: Ignore
+    rules:
+      - apiGroups: ["snapshot.storage.k8s.io"]
+        apiVersions: ["v1"]
+        operations: ["CREATE"]
+        resources: ["volumesnapshots"]
+        scope: "Namespaced"
+    clientConfig:
+      service:
+        namespace: "d8-{{ .Chart.Name }}"
+        name: "webhooks"
+        path: "/volume-snapshot-mutate"
+      caBundle: {{ .Values.snapshotController.internal.customWebhookCert.ca | b64enc | quote }}
+    admissionReviewVersions: ["v1", "v1beta1"]
+    sideEffects: None
+    timeoutSeconds: 5
