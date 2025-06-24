@@ -20,7 +20,7 @@ rules:
     resources:
       - storageclasses
   - apiGroups:
-      - core.k8s.io
+      - ""
     verbs:
       - get
       - list
