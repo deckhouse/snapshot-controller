@@ -74,7 +74,7 @@ func main() {
 
 	volumeSnapshotMutatingWebHookHandler, err := handlers.GetMutatingWebhookHandler(handlers.VolumeSnapshotMutate, volumeSnapshotMutatorID, &snapshotv1.VolumeSnapshot{}, logger)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "error creating podSchedulerMutatingWebHookHandler: %s", err)
+		fmt.Fprintf(os.Stderr, "error creating volumeSnapshotMutatingWebHookHandler: %s", err)
 		os.Exit(1)
 	}
 
