@@ -107,6 +107,8 @@ func VolumeSnapshotMutate(ctx context.Context, _ *model.AdmissionReview, obj met
 
 	log.Info("VolumeSnapshotMutate: no matching VolumeSnapshotClass found", "availableClasses", vscDict[sc.Provisioner])
 
+	log.Debug("VolumeSnapshotMutate finished")
+
 	return &kwhmutating.MutatorResult{
 		MutatedObject: snapshot,
 	}, nil
