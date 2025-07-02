@@ -18,6 +18,7 @@ package handlers
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 
 	snapshotv1 "github.com/kubernetes-csi/external-snapshotter/client/v6/apis/volumesnapshot/v1"
@@ -84,9 +85,12 @@ func VolumeSnapshotMutate(ctx context.Context, _ *model.AdmissionReview, obj met
 					MutatedObject: snapshot,
 				}, nil
 			} else {
-				log.Info("VolumeSnapshotMutate: StorageClass", sc.Name, " not managed by Deckhouse")
-				return &kwhmutating.MutatorResult{}, nil
+				log.Error("VolumeSnapshotMutate: StorageClass does not have volume snapshot class name annotation", "name", sc.Name)
+				return &kwhmutating.MutatorResult{}, errors.New("StorageClass does not have volume snapshot class name annotation")
 			}
+		} else {
+			log.Info("VolumeSnapshotMutate: StorageClass", sc.Name, " not managed by Deckhouse")
+			return &kwhmutating.MutatorResult{}, nil
 		}
 	}
 
