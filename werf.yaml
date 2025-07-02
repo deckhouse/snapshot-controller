@@ -1,4 +1,4 @@
-project: sds-local-volume
+project: snapshot-controller
 configVersion: 1
 build:
   imageSpec:

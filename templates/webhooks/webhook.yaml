@@ -5,7 +5,7 @@ metadata:
   name: "d8-{{ .Chart.Name }}-volume-snapshot-mutation"
   labels:
     heritage: deckhouse
-    module: sds-local-volume
+    module: snapshot-controller
 webhooks:
   - name: "d8-{{ .Chart.Name }}-volume-snapshot-mutation.storage.deckhouse.io"
     failurePolicy: Fail
