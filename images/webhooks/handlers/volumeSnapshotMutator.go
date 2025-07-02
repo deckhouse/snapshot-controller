@@ -74,42 +74,20 @@ func VolumeSnapshotMutate(ctx context.Context, _ *model.AdmissionReview, obj met
 
 	log.Info("VolumeSnapshotMutate: found StorageClass", "name", sc.Name, "provisioner", sc.Provisioner)
 
-	vscList := &snapshotv1.VolumeSnapshotClassList{}
-	err = client.List(ctx, vscList)
-	if err != nil {
-		log.Error("VolumeSnapshotMutate: failed to list VolumeSnapshotClasses", "error", err)
-		return &kwhmutating.MutatorResult{}, err
-	}
-
-	vscDict := make(map[string][]string)
-	for _, vscItem := range vscList.Items {
-		if vscDict[vscItem.Driver] == nil {
-			vscDict[vscItem.Driver] = []string{}
-		}
-		vscDict[vscItem.Driver] = append(vscDict[vscItem.Driver], vscItem.Name)
-
-		if vscItem.Name == *pvc.Spec.StorageClassName {
-			snapshot.Spec.VolumeSnapshotClassName = &vscItem.Name
-			log.Info("VolumeSnapshotMutate: found matching VolumeSnapshotClass", "name", vscItem.Name, "driver", vscItem.Driver)
-			return &kwhmutating.MutatorResult{
-				MutatedObject: snapshot,
-			}, nil
+	if sc.Labels != nil {
+		if managedBy, ok := sc.Labels["storage.deckhouse.io/managed-by"]; ok {
+			log.Info("VolumeSnapshotMutate: StorageClass is managed by module", "storageClass", sc.Name, "managedBy", managedBy)
+			if volumeSnapshotClassName, ok := sc.Annotations["storage.deckhouse.io/volumesnapshotclass"]; ok {
+				log.Info("VolumeSnapshotMutate: StorageClass has volume snapshot class name annotation, set it in VolumeSnapshot", "name", volumeSnapshotClassName)
+				snapshot.Spec.VolumeSnapshotClassName = &volumeSnapshotClassName
+				return &kwhmutating.MutatorResult{
+					MutatedObject: snapshot,
+				}, nil
+			} else {
+				log.Info("VolumeSnapshotMutate: StorageClass", sc.Name, " not managed by Deckhouse")
+				return &kwhmutating.MutatorResult{}, nil
+			}
 		}
 	}
-
-	if len(vscDict[sc.Provisioner]) == 1 {
-		snapshot.Spec.VolumeSnapshotClassName = &vscDict[sc.Provisioner][0]
-		log.Info("VolumeSnapshotMutate: setting VolumeSnapshotClassName to the only available class", "name", snapshot.Spec.VolumeSnapshotClassName)
-		return &kwhmutating.MutatorResult{
-			MutatedObject: snapshot,
-		}, nil
-	}
-
-	log.Info("VolumeSnapshotMutate: no matching VolumeSnapshotClass found", "availableClasses", vscDict[sc.Provisioner])
-
-	log.Debug("VolumeSnapshotMutate finished")
-
-	return &kwhmutating.MutatorResult{
-		MutatedObject: snapshot,
-	}, nil
+	return &kwhmutating.MutatorResult{}, nil
 }
