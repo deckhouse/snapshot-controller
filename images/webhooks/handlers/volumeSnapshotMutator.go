@@ -89,5 +89,7 @@ func VolumeSnapshotMutate(ctx context.Context, _ *model.AdmissionReview, obj met
 			}
 		}
 	}
+
+	log.Info("VolumeSnapshotMutate: StorageClass", sc.Name, " not managed by Deckhouse")
 	return &kwhmutating.MutatorResult{}, nil
 }
