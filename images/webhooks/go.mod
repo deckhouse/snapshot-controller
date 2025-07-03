@@ -6,17 +6,17 @@ require (
 	github.com/deckhouse/sds-common-lib v0.5.0
 	github.com/sirupsen/logrus v1.9.3
 	github.com/slok/kubewebhook/v2 v2.6.0
-	k8s.io/api v0.32.1
+	k8s.io/api v0.32.3
 	k8s.io/apiextensions-apiserver v0.32.1
 	k8s.io/apimachinery v0.32.3
-	k8s.io/client-go v0.32.1
-	sigs.k8s.io/controller-runtime v0.20.4
+	k8s.io/client-go v0.32.3
 )
 
 require (
 	github.com/fsnotify/fsnotify v1.8.0 // indirect
 	github.com/stretchr/testify v1.10.0 // indirect
 	k8s.io/klog/v2 v2.130.1 // indirect
+	sigs.k8s.io/controller-runtime v0.20.4 // indirect
 )
 
 require (

@@ -25,10 +25,16 @@ import (
 	"github.com/slok/kubewebhook/v2/pkg/model"
 	kwhmutating "github.com/slok/kubewebhook/v2/pkg/webhook/mutating"
 	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
+	sv1 "k8s.io/api/storage/v1"
+	extv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 
+	d8commonapi "github.com/deckhouse/sds-common-lib/api/v1alpha1"
+	"github.com/deckhouse/sds-common-lib/kubeclient"
 	"github.com/deckhouse/sds-common-lib/slogh"
 )
 
@@ -48,10 +54,23 @@ func VolumeSnapshotMutate(ctx context.Context, _ *model.AdmissionReview, obj met
 		return &kwhmutating.MutatorResult{}, nil
 	}
 
-	client, err := NewKubeClient("")
+	client, err := kubeclient.New(d8commonapi.AddToScheme,
+		corev1.AddToScheme,
+		storagev1.AddToScheme,
+		snapshotv1.AddToScheme,
+		clientgoscheme.AddToScheme,
+		extv1.AddToScheme,
+		v1.AddToScheme,
+		sv1.AddToScheme,
+	)
 	if err != nil {
 		log.Error("VolumeSnapshotMutate: failed to create kube client", "error", err)
 		return &kwhmutating.MutatorResult{}, err
+	}
+
+	if snapshot.Spec.Source.PersistentVolumeClaimName == nil {
+		log.Error("VolumeSnapshotMutate: VolumeSnapshot PersistentVolumeClaimName is nil", "snapshot", snapshot.Name)
+		return &kwhmutating.MutatorResult{}, errors.New("VolumeSnapshot PersistentVolumeClaimName is nil")
 	}
 
 	namespace := snapshot.ObjectMeta.Namespace
@@ -66,6 +85,11 @@ func VolumeSnapshotMutate(ctx context.Context, _ *model.AdmissionReview, obj met
 
 	log.Info("VolumeSnapshotMutate: found PVC", "name", pvc.Name, "namespace", pvc.Namespace, "storageClassName", pvc.Spec.StorageClassName)
 
+	if pvc.Spec.StorageClassName == nil {
+		log.Error("VolumeSnapshotMutate: PVC StorageClassName is nil", "pvc", pvc.Name)
+		return &kwhmutating.MutatorResult{}, errors.New("PVC StorageClassName is nil")
+	}
+
 	sc := &storagev1.StorageClass{}
 	err = client.Get(ctx, types.NamespacedName{Name: *pvc.Spec.StorageClassName, Namespace: namespace}, sc)
 	if err != nil {
@@ -75,25 +99,20 @@ func VolumeSnapshotMutate(ctx context.Context, _ *model.AdmissionReview, obj met
 
 	log.Info("VolumeSnapshotMutate: found StorageClass", "name", sc.Name, "provisioner", sc.Provisioner)
 
-	if sc.Labels != nil {
-		if managedBy, ok := sc.Labels["storage.deckhouse.io/managed-by"]; ok {
-			log.Info("VolumeSnapshotMutate: StorageClass is managed by module", "storageClass", sc.Name, "managedBy", managedBy)
-			if volumeSnapshotClassName, ok := sc.Annotations["storage.deckhouse.io/volumesnapshotclass"]; ok {
-				log.Info("VolumeSnapshotMutate: StorageClass has volume snapshot class name annotation, set it in VolumeSnapshot", "name", volumeSnapshotClassName)
-				snapshot.Spec.VolumeSnapshotClassName = &volumeSnapshotClassName
-				return &kwhmutating.MutatorResult{
-					MutatedObject: snapshot,
-				}, nil
-			} else {
-				log.Error("VolumeSnapshotMutate: StorageClass does not have volume snapshot class name annotation", "name", sc.Name)
-				return &kwhmutating.MutatorResult{}, errors.New("StorageClass does not have volume snapshot class name annotation")
-			}
+	if managedBy, ok := sc.Labels["storage.deckhouse.io/managed-by"]; ok {
+		log.Info("VolumeSnapshotMutate: StorageClass is managed by module", "storageClass", sc.Name, "managedBy", managedBy)
+		if volumeSnapshotClassName, ok := sc.Annotations["storage.deckhouse.io/volumesnapshotclass"]; ok {
+			log.Info("VolumeSnapshotMutate: StorageClass has volume snapshot class name annotation, set it in VolumeSnapshot", "name", volumeSnapshotClassName)
+			snapshot.Spec.VolumeSnapshotClassName = &volumeSnapshotClassName
+			return &kwhmutating.MutatorResult{
+				MutatedObject: snapshot,
+			}, nil
 		} else {
-			log.Info("VolumeSnapshotMutate: StorageClass", sc.Name, " not managed by Deckhouse")
-			return &kwhmutating.MutatorResult{}, nil
+			log.Error("VolumeSnapshotMutate: StorageClass does not have volume snapshot class name annotation", "name", sc.Name)
+			return &kwhmutating.MutatorResult{}, errors.New("StorageClass does not have volume snapshot class name annotation")
 		}
+	} else {
+		log.Info("VolumeSnapshotMutate: StorageClass", sc.Name, " not managed by Deckhouse")
+		return &kwhmutating.MutatorResult{}, nil
 	}
-
-	log.Info("VolumeSnapshotMutate: StorageClass", sc.Name, " not managed by Deckhouse")
-	return &kwhmutating.MutatorResult{}, nil
 }
