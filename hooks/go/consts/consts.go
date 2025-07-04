@@ -17,8 +17,9 @@ limitations under the License.
 package consts
 
 const (
-	ModuleName      	string = "snapshotController"
-	ModuleNamespace 	string = "d8-snapshot-controller"
-	ModulePluralName	string = "snapshot-controller"
-	WebhookCertCn   	string = "snapshot-validation-webhook"
+	ModuleName      			string = "snapshotController"
+	ModuleNamespace 			string = "d8-snapshot-controller"
+	ModulePluralName			string = "snapshot-controller"
+	ValidatingWebhookCertCn   	string = "snapshot-validation-webhook"
+	WebhookCertCn   			string = "webhooks"
 )
