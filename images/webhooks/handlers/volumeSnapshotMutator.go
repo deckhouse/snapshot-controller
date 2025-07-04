@@ -119,6 +119,16 @@ func VolumeSnapshotMutate(ctx context.Context, _ *model.AdmissionReview, obj met
 		}
 	} else {
 		log.Info("VolumeSnapshotMutate: StorageClass", sc.Name, " not managed by Deckhouse")
+
+		if snapshot.Spec.VolumeSnapshotClassName == nil {
+			if volumeSnapshotClassName, ok := sc.Annotations[storageClassVolumeSnapshotAnnotationName]; ok {
+				log.Info("VolumeSnapshotMutate: StorageClass has volume snapshot class name annotation, set it in VolumeSnapshot", "name", volumeSnapshotClassName)
+				snapshot.Spec.VolumeSnapshotClassName = &volumeSnapshotClassName
+				return &kwhmutating.MutatorResult{
+					MutatedObject: snapshot,
+				}, nil
+			}
+		}
 		return &kwhmutating.MutatorResult{}, nil
 	}
 }
