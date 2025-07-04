@@ -38,6 +38,11 @@ import (
 	"github.com/deckhouse/sds-common-lib/slogh"
 )
 
+const (
+	storageClassVolumeSnapshotAnnotationName = "storage.deckhouse.io/volumesnapshotclass"
+	storageClassManagedbyLabelName = "storage.deckhouse.io/managed-by"
+)
+
 func VolumeSnapshotMutate(ctx context.Context, _ *model.AdmissionReview, obj metav1.Object) (*kwhmutating.MutatorResult, error) {
 	log := slog.New(slogh.NewHandler(slogh.Config{}))
 
@@ -99,9 +104,14 @@ func VolumeSnapshotMutate(ctx context.Context, _ *model.AdmissionReview, obj met
 
 	log.Info("VolumeSnapshotMutate: found StorageClass", "name", sc.Name, "provisioner", sc.Provisioner)
 
-	if managedBy, ok := sc.Labels["storage.deckhouse.io/managed-by"]; ok {
+	if managedBy, ok := sc.Labels[storageClassManagedbyLabelName]; ok {
 		log.Info("VolumeSnapshotMutate: StorageClass is managed by module", "storageClass", sc.Name, "managedBy", managedBy)
-		if volumeSnapshotClassName, ok := sc.Annotations["storage.deckhouse.io/volumesnapshotclass"]; ok {
+		if volumeSnapshotClassName, ok := sc.Annotations[storageClassVolumeSnapshotAnnotationName]; ok {
+			if snapshot.Spec.VolumeSnapshotClassName != nil && *snapshot.Spec.VolumeSnapshotClassName != volumeSnapshotClassName {
+				log.Error("VolumeSnapshotMutate: if VolumeSnapshotClassName is set, it must match the StorageClass annotation", "snapshotVolumeSnapshotClassName", *snapshot.Spec.VolumeSnapshotClassName, "storageClassAnnotation", volumeSnapshotClassName)
+				return &kwhmutating.MutatorResult{}, err				
+			}
+
 			log.Info("VolumeSnapshotMutate: StorageClass has volume snapshot class name annotation, set it in VolumeSnapshot", "name", volumeSnapshotClassName)
 			snapshot.Spec.VolumeSnapshotClassName = &volumeSnapshotClassName
 			return &kwhmutating.MutatorResult{
