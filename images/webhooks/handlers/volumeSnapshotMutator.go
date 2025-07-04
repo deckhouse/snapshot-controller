@@ -19,6 +19,7 @@ package handlers
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 
 	snapshotv1 "github.com/kubernetes-csi/external-snapshotter/client/v6/apis/volumesnapshot/v1"
@@ -40,7 +41,7 @@ import (
 
 const (
 	storageClassVolumeSnapshotAnnotationName = "storage.deckhouse.io/volumesnapshotclass"
-	storageClassManagedbyLabelName = "storage.deckhouse.io/managed-by"
+	storageClassManagedbyLabelName           = "storage.deckhouse.io/managed-by"
 )
 
 func VolumeSnapshotMutate(ctx context.Context, _ *model.AdmissionReview, obj metav1.Object) (*kwhmutating.MutatorResult, error) {
@@ -104,7 +105,7 @@ func VolumeSnapshotMutate(ctx context.Context, _ *model.AdmissionReview, obj met
 		if volumeSnapshotClassName, ok := sc.Annotations[storageClassVolumeSnapshotAnnotationName]; ok {
 			if snapshot.Spec.VolumeSnapshotClassName != nil && *snapshot.Spec.VolumeSnapshotClassName != volumeSnapshotClassName {
 				log.Error("VolumeSnapshotMutate: if VolumeSnapshotClassName is set, it must match the StorageClass annotation", "snapshotVolumeSnapshotClassName", *snapshot.Spec.VolumeSnapshotClassName, "storageClassAnnotation", volumeSnapshotClassName)
-				return &kwhmutating.MutatorResult{}, err				
+				return &kwhmutating.MutatorResult{}, fmt.Errorf("VolumeSnapshotMutate: if VolumeSnapshotClassName is set, it must match the StorageClass annotation, snapshotVolumeSnapshotClassName %s, storageClassAnnotation %s", *snapshot.Spec.VolumeSnapshotClassName, volumeSnapshotClassName)
 			}
 
 			log.Info("VolumeSnapshotMutate: StorageClass has volume snapshot class name annotation, set it in VolumeSnapshot", "name", volumeSnapshotClassName)
