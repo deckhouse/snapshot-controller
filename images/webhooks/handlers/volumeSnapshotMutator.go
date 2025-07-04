@@ -54,11 +54,6 @@ func VolumeSnapshotMutate(ctx context.Context, _ *model.AdmissionReview, obj met
 
 	log.Info("VolumeSnapshotMutate: object is VolumeSnapshot", "name", snapshot.Name, "namespace", snapshot.Namespace)
 
-	if snapshot.Spec.VolumeSnapshotClassName != nil {
-		log.Info("VolumeSnapshotMutate: VolumeSnapshotClassName is already set", "name", *snapshot.Spec.VolumeSnapshotClassName)
-		return &kwhmutating.MutatorResult{}, nil
-	}
-
 	client, err := kubeclient.New(d8commonapi.AddToScheme,
 		corev1.AddToScheme,
 		storagev1.AddToScheme,
