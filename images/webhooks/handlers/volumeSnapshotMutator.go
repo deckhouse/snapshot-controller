@@ -70,8 +70,8 @@ func VolumeSnapshotMutate(ctx context.Context, _ *model.AdmissionReview, obj met
 	}
 
 	if snapshot.Spec.Source.PersistentVolumeClaimName == nil {
-		log.Error("VolumeSnapshotMutate: VolumeSnapshot PersistentVolumeClaimName is nil", "snapshot", snapshot.Name)
-		return &kwhmutating.MutatorResult{}, errors.New("VolumeSnapshot PersistentVolumeClaimName is nil")
+		log.Warn("VolumeSnapshotMutate: VolumeSnapshot PersistentVolumeClaimName is nil. Skipping mutation", "snapshot", snapshot.Name)
+		return &kwhmutating.MutatorResult{}, nil
 	}
 
 	namespace := snapshot.ObjectMeta.Namespace
