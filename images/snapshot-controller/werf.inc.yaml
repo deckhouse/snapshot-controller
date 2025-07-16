@@ -46,11 +46,12 @@ secrets:
   value: {{ .GOPROXY }}
 
 shell:
-  beforeInstall:    
-    - apk add --no-cache make bash git
+  beforeInstall:
+  {{- include "alpine packages proxy" . | nindent 2 }}   
+  - apk add --no-cache make bash git
   install:
     - cd /src/snapshot-controller
-    - GO_VERSION=$(cat /run/secrets/GOLANG_VERSION) CGO_ENABLED=0 GOOS=linux GOARCH=amd64
+    - export GO_VERSION=$(cat /run/secrets/GOLANG_VERSION) CGO_ENABLED=0 GOOS=linux GOARCH=amd64
     - GOPROXY=$(cat /run/secrets/GOPROXY) go mod download
     - make build
     - cp bin/snapshot-controller bin/csi-snapshotter bin/snapshot-validation-webhook /
