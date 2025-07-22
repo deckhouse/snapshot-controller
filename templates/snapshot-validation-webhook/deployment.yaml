@@ -61,7 +61,7 @@ spec:
         checksum/config: {{ include (print $.Template.BasePath "/snapshot-validation-webhook/secret.yaml") . | sha256sum }}
     spec:
       imagePullSecrets:
-        - name: deckhouse-registry
+        - name: {{ .Chart.Name }}-module-registry
       {{- include "helm_lib_priority_class" (tuple . "system-cluster-critical") | nindent 6 }}
       {{- include "helm_lib_node_selector" (tuple . "master") | nindent 6 }}
       {{- include "helm_lib_tolerations" (tuple . "any-node" "with-uninitialized") | nindent 6 }}
