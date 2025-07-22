@@ -102,7 +102,6 @@ spec:
 {{- if not ( .Values.global.enabledModules | has "vertical-pod-autoscaler-crd") }}
             {{- include "webhooks_resources" . | nindent 12 }}
 {{- end }}
-
       imagePullSecrets:
         - name: {{ .Chart.Name }}-module-registry
       serviceAccount: webhooks
