@@ -4,5 +4,4 @@
 # component versions
 {{- $versions := dict }}
 {{- $_ := set $versions "SNAPSHOT_CONTROLLER" "v8.1.1" }}
-
 {{- $_ := set . "VERSIONS" $versions }}

@@ -27,7 +27,7 @@ shell:
 
 ---
 image: {{ .ModuleNamePrefix }}{{ .ImageName }}-golang-artifact
-fromImage: builder/golang-alpine
+fromImage: {{ eq .SVACE_ENABLED "false" | ternary "builder/golang-alpine" "builder/alt-go-svace" }}
 final: false
 
 import:
@@ -44,14 +44,17 @@ secrets:
   value: {{ .GOPROXY }}
 
 shell:
+{{- if eq .SVACE_ENABLED "false" }}
   beforeInstall:
-  {{- include "alpine packages proxy" . | nindent 2 }}   
+  {{- include "alpine packages proxy" $ | nindent 2 }}
   - apk add --no-cache make bash git
+{{- end }}
   install:
     - cd /src/snapshot-controller
     - export CGO_ENABLED=0 GOOS=linux GOARCH=amd64
     - GOPROXY=$(cat /run/secrets/GOPROXY) go mod download
-    - make build
+    - |
+      {{- include "image-build.build" (set $ "BuildCommand" (printf "make build")) | nindent 6 }}
     - cp bin/snapshot-controller bin/csi-snapshotter bin/snapshot-validation-webhook /
     - chown 64535:64535 /snapshot-controller /csi-snapshotter /snapshot-validation-webhook
     - chmod 0755 /snapshot-controller /csi-snapshotter /snapshot-validation-webhook
