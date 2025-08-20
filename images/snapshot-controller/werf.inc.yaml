@@ -3,14 +3,6 @@
 image: {{ .ModuleNamePrefix }}{{ .ImageName }}-src-artifact
 fromImage: builder/src
 final: false
-git:
-  - add: {{ .ModuleDir }}
-    to: /patches
-    includePaths:
-      - images/{{ $.ImageName }}/patches
-    stageDependencies:
-      install:
-        - '**/*'
 
 secrets:
 - id: SOURCE_REPO
@@ -20,8 +12,8 @@ shell:
   install:
     - git clone --depth 1 --branch {{ $.Versions.SNAPSHOT_CONTROLLER }} $(cat /run/secrets/SOURCE_REPO)/kubernetes-csi/external-snapshotter.git /src/snapshot-controller
     - cd /src/snapshot-controller
-    - for patchfile in /patches/images/{{ $.ImageName }}/patches/*.patch; do echo "Apply ${patchfile} ... "; git apply ${patchfile} --verbose; done
-    - rm -rf /src/images/{{ $.ImageName }}/patches
+#    - for patchfile in /patches/images/{{ $.ImageName }}/patches/*.patch; do echo "Apply ${patchfile} ... "; git apply ${patchfile} --verbose; done
+#    - rm -rf /src/images/{{ $.ImageName }}/patches
     - rm -rf /src/snapshot-controller/vendor
     - rm -rf /src/snapshot-controller/.git
 
@@ -55,9 +47,9 @@ shell:
     - GOPROXY=$(cat /run/secrets/GOPROXY) go mod download
     - |
       {{- include "image-build.build" (set $ "BuildCommand" (printf "make build")) | nindent 6 }}
-    - cp bin/snapshot-controller bin/csi-snapshotter bin/snapshot-validation-webhook /
-    - chown 64535:64535 /snapshot-controller /csi-snapshotter /snapshot-validation-webhook
-    - chmod 0755 /snapshot-controller /csi-snapshotter /snapshot-validation-webhook
+    - cp bin/snapshot-controller bin/csi-snapshotter /
+    - chown 64535:64535 /snapshot-controller /csi-snapshotter
+    - chmod 0755 /snapshot-controller /csi-snapshotter
 
 ---
 image: {{ .ModuleNamePrefix }}{{ .ImageName }}
