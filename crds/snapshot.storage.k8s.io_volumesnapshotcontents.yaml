@@ -8,7 +8,7 @@ metadata:
   name: volumesnapshotcontents.snapshot.storage.k8s.io
   labels:
     heritage: deckhouse
-    module: snapshot-controller  
+    module: snapshot-controller
 spec:
   group: snapshot.storage.k8s.io
   names:
