@@ -47,9 +47,9 @@ shell:
     - GOPROXY=$(cat /run/secrets/GOPROXY) go mod download
     - |
       {{- include "image-build.build" (set $ "BuildCommand" (printf "make build")) | nindent 6 }}
-    - cp bin/snapshot-controller bin/csi-snapshotter bin/snapshot-validation-webhook /
-    - chown 64535:64535 /snapshot-controller /csi-snapshotter /snapshot-validation-webhook
-    - chmod 0755 /snapshot-controller /csi-snapshotter /snapshot-validation-webhook
+    - cp bin/snapshot-controller bin/csi-snapshotter /
+    - chown 64535:64535 /snapshot-controller /csi-snapshotter
+    - chmod 0755 /snapshot-controller /csi-snapshotter
 
 ---
 image: {{ .ModuleNamePrefix }}{{ .ImageName }}
