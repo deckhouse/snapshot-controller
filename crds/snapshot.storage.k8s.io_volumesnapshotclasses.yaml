@@ -25,8 +25,7 @@ spec:
     - jsonPath: .driver
       name: Driver
       type: string
-    - description: Determines whether a VolumeSnapshotContent created through the
-        VolumeSnapshotClass should be deleted when its bound VolumeSnapshot is deleted.
+    - description: Determines whether a VolumeSnapshotContent created through the VolumeSnapshotClass should be deleted when its bound VolumeSnapshot is deleted.
       jsonPath: .deletionPolicy
       name: DeletionPolicy
       type: string
