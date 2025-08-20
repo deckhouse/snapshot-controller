@@ -3,14 +3,6 @@
 image: {{ .ModuleNamePrefix }}{{ .ImageName }}-src-artifact
 fromImage: builder/src
 final: false
-git:
-  - add: {{ .ModuleDir }}
-    to: /patches
-    includePaths:
-      - images/{{ $.ImageName }}/patches
-    stageDependencies:
-      install:
-        - '**/*'
 
 secrets:
 - id: SOURCE_REPO
