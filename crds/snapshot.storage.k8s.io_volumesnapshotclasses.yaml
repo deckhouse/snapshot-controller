@@ -6,9 +6,6 @@ metadata:
     api-approved.kubernetes.io: "https://github.com/kubernetes-csi/external-snapshotter/pull/814"
     controller-gen.kubebuilder.io/version: v0.15.0
   name: volumesnapshotclasses.snapshot.storage.k8s.io
-  labels:
-    heritage: deckhouse
-    module: snapshot-controller
 spec:
   group: snapshot.storage.k8s.io
   names:
@@ -25,7 +22,8 @@ spec:
     - jsonPath: .driver
       name: Driver
       type: string
-    - description: Determines whether a VolumeSnapshotContent created through the VolumeSnapshotClass should be deleted when its bound VolumeSnapshot is deleted.
+    - description: Determines whether a VolumeSnapshotContent created through the
+        VolumeSnapshotClass should be deleted when its bound VolumeSnapshot is deleted.
       jsonPath: .deletionPolicy
       name: DeletionPolicy
       type: string
