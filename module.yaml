@@ -11,8 +11,8 @@ descriptions:
 requirements:
   deckhouse: ">= 1.67"
 accessibility:
-   editions:
-     _default:
+  editions:
+    _default:
       available: true
       enabledInBundles:
         - Default
