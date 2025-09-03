@@ -9,7 +9,6 @@ descriptions:
   en: |
     This module enables snapshot support for compatible CSI-drivers in the Kubernetes cluster.
 requirements:
-  bootstrapped: true
   deckhouse: ">= 1.67"
 accessibility:
    editions:
