@@ -4,4 +4,4 @@ properties:
     description: |
       Ручное управление режимом отказоустойчивости.
 
-      По умолчанию режим отказоустойчивости определяется автоматически. [Подробнее](../../deckhouse-configure-global.html#параметры) про режим отказоустойчивости.
+      По умолчанию режим отказоустойчивости определяется автоматически. [Подробнее](https://deckhouse.ru/products/kubernetes-platform/documentation/deckhouse-configure-global.html#parameters-highavailability) про режим отказоустойчивости.
