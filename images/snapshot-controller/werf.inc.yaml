@@ -12,6 +12,8 @@ git:
     stageDependencies:
       install:
         - '**/*'
+    excludePaths:
+      - images/{{ $.ImageName }}/werf.yaml
 
 shell:
   install:
@@ -42,7 +44,7 @@ shell:
   - apk add --no-cache make bash git
 {{- end }}
   install:
-    - cd /src/snapshot-controller/src
+    - cd /src/snapshot-controller
     - export CGO_ENABLED=0 GOOS=linux GOARCH=amd64
     - GOPROXY=$(cat /run/secrets/GOPROXY) go mod download
     - |
