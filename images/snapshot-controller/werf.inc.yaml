@@ -4,18 +4,20 @@ image: {{ .ModuleNamePrefix }}{{ .ImageName }}-src-artifact
 fromImage: builder/src
 final: false
 
-secrets:
-- id: SOURCE_REPO
-  value: {{ .SOURCE_REPO }}
+git:
+  - add: {{ .ModuleDir }}
+    to: /src
+    includePaths:
+      - images/{{ $.ImageName }}
+    stageDependencies:
+      install:
+        - '**/*'
+    excludePaths:
+      - images/{{ $.ImageName }}/werf.yaml
 
 shell:
   install:
-    - git clone --depth 1 --branch {{ $.Versions.SNAPSHOT_CONTROLLER }} $(cat /run/secrets/SOURCE_REPO)/kubernetes-csi/external-snapshotter.git /src/snapshot-controller
-    - cd /src/snapshot-controller
-#    - for patchfile in /patches/images/{{ $.ImageName }}/patches/*.patch; do echo "Apply ${patchfile} ... "; git apply ${patchfile} --verbose; done
-#    - rm -rf /src/images/{{ $.ImageName }}/patches
-    - rm -rf /src/snapshot-controller/vendor
-    - rm -rf /src/snapshot-controller/.git
+    - echo "src artifact"
 
 ---
 image: {{ .ModuleNamePrefix }}{{ .ImageName }}-golang-artifact
@@ -42,7 +44,7 @@ shell:
   - apk add --no-cache make bash git
 {{- end }}
   install:
-    - cd /src/snapshot-controller
+    - cd /src/images/snapshot-controller
     - export CGO_ENABLED=0 GOOS=linux GOARCH=amd64
     - GOPROXY=$(cat /run/secrets/GOPROXY) go mod download
     - |
