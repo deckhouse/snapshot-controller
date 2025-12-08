@@ -6,7 +6,7 @@ final: false
 
 git:
   - add: {{ .ModuleDir }}
-    to: /
+    to: /src
     includePaths:
       - images/{{ $.ImageName }}
     stageDependencies:
