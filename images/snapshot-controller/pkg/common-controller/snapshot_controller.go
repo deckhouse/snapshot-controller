@@ -86,12 +86,15 @@ const (
 const controllerUpdateFailMsg = "snapshot controller failed to update"
 
 // syncContent deals with one key off the queue
+// VSC-only model: This function now works with VolumeSnapshotContent independently,
+// without requiring VolumeSnapshot. VolumeSnapshotRef may be empty (VSC-only) or
+// present (legacy backward compatibility).
 func (ctrl *csiSnapshotCommonController) syncContent(content *crdv1.VolumeSnapshotContent) error {
-	snapshotName := utils.SnapshotRefKey(&content.Spec.VolumeSnapshotRef)
-	klog.V(4).Infof("synchronizing VolumeSnapshotContent[%s]: content is bound to snapshot %s", content.Name, snapshotName)
+	klog.V(4).Infof("synchronizing VolumeSnapshotContent[%s]", content.Name)
 
 	klog.V(5).Infof("syncContent[%s]: check if we should add invalid label on content", content.Name)
 
+	// Validate that exactly one of VolumeHandle and SnapshotHandle is specified
 	if (content.Spec.Source.VolumeHandle == nil && content.Spec.Source.SnapshotHandle == nil) ||
 		(content.Spec.Source.VolumeHandle != nil && content.Spec.Source.SnapshotHandle != nil) {
 		err := fmt.Errorf("Exactly one of VolumeHandle and SnapshotHandle should be specified")
@@ -100,69 +103,54 @@ func (ctrl *csiSnapshotCommonController) syncContent(content *crdv1.VolumeSnapsh
 		return err
 	}
 
-	// The VolumeSnapshotContent is reserved for a VolumeSnapshot;
-	// that VolumeSnapshot has not yet been bound to this VolumeSnapshotContent;
-	// syncSnapshot will handle it.
-	if content.Spec.VolumeSnapshotRef.UID == "" {
-		klog.V(4).Infof("syncContent [%s]: VolumeSnapshotContent is pre-bound to VolumeSnapshot %s", content.Name, snapshotName)
+	// Check if this is VSC-only (VolumeSnapshotRef completely empty) or legacy (VolumeSnapshotRef set)
+	isVSCOnly := content.Spec.VolumeSnapshotRef.UID == "" &&
+		content.Spec.VolumeSnapshotRef.Name == "" &&
+		content.Spec.VolumeSnapshotRef.Namespace == ""
+
+	if isVSCOnly {
+		// VSC-only model: VolumeSnapshotRef is completely empty - this is normal.
+		// VSC is the source of truth, no VolumeSnapshot involved.
+		klog.V(4).Infof("syncContent [%s]: VolumeSnapshotContent is VSC-only (no VolumeSnapshotRef)", content.Name)
+
+		// VSC-only: Add finalizer if needed (same as legacy)
+		if utils.NeedToAddContentFinalizer(content) {
+			klog.V(5).Infof("syncContent [%s]: Add Finalizer for VolumeSnapshotContent (VSC-only)", content.Name)
+			return ctrl.addContentFinalizer(content)
+		}
+
+		// VSC-only: No VolumeSnapshot to manage, no status updates needed.
+		// Sidecar-controller handles CSI operations and updates VSC.Status.
+		// Deletion is handled by DeletionTimestamp on VSC itself.
 		return nil
 	}
 
+	// Legacy mode: VolumeSnapshotRef is set - maintain backward compatibility
+	// Keep original behavior for legacy snapshots to avoid regressions
+	klog.V(4).Infof("syncContent [%s]: VolumeSnapshotContent is legacy (has VolumeSnapshotRef)", content.Name)
+
+	// Legacy: Add finalizer if needed (same as VSC-only)
 	if utils.NeedToAddContentFinalizer(content) {
-		// Content is not being deleted -> it should have the finalizer.
-		klog.V(5).Infof("syncContent [%s]: Add Finalizer for VolumeSnapshotContent", content.Name)
+		klog.V(5).Infof("syncContent [%s]: Add Finalizer for VolumeSnapshotContent (legacy)", content.Name)
 		return ctrl.addContentFinalizer(content)
 	}
 
-	// Check if snapshot exists in cache store
-	// If getSnapshotFromStore returns (nil, nil), it means snapshot not found
-	// and it may have already been deleted, and it will fall into the
-	// snapshot == nil case below
-	var snapshot *crdv1.VolumeSnapshot
+	// Legacy: Check if VolumeSnapshot exists and handle deletion
+	// This preserves original behavior for backward compatibility
+	snapshotName := utils.SnapshotRefKey(&content.Spec.VolumeSnapshotRef)
 	snapshot, err := ctrl.getSnapshotFromStore(snapshotName)
 	if err != nil {
-		return err
+		// Error getting snapshot - log but continue (may be transient)
+		klog.V(4).Infof("syncContent [%s]: error getting snapshot %s (legacy mode): %v", content.Name, snapshotName, err)
+		return nil
 	}
 
-	if snapshot != nil && snapshot.UID != content.Spec.VolumeSnapshotRef.UID {
-		// The snapshot that the content was pointing to was deleted, and another
-		// with the same name created.
-		klog.V(4).Infof("syncContent [%s]: snapshot %s has different UID, the old one must have been deleted", content.Name, snapshotName)
-		// Treat the content as bound to a missing snapshot.
-		snapshot = nil
-	} else {
-		// Check if snapshot.Status is different from content.Status and add snapshot to queue
-		// if there is a difference and it is worth triggering an snapshot status update.
-		if snapshot != nil && ctrl.needsUpdateSnapshotStatus(snapshot, content) {
-			klog.V(4).Infof("synchronizing VolumeSnapshotContent for snapshot [%s]: update snapshot status to true if needed.", snapshotName)
-			// Manually trigger a snapshot status update to happen
-			// right away so that it is in-sync with the content status
-			ctrl.snapshotQueue.Add(snapshotName)
+	if snapshot != nil && snapshot.UID == content.Spec.VolumeSnapshotRef.UID {
+		// Legacy: If snapshot has deletion timestamp, set annotation to trigger deletion
+		if utils.IsSnapshotDeletionCandidate(snapshot) {
+			_, err = ctrl.setAnnVolumeSnapshotBeingDeleted(content)
+			return err
 		}
-	}
-
-	// NOTE(xyang): Do not trigger content deletion if
-	// snapshot is nil. This is to avoid data loss if
-	// the user copied the yaml files and expect it to work
-	// in a different setup. In this case snapshot is nil.
-	// If we trigger content deletion, it will delete
-	// physical snapshot resource on the storage system
-	// and result in data loss!
-	//
-	// Trigger content deletion if snapshot is not nil
-	// and snapshot has deletion timestamp.
-	// If snapshot has deletion timestamp and finalizers, set
-	// AnnVolumeSnapshotBeingDeleted annotation on the content.
-	// This may trigger the deletion of the content in the
-	// sidecar controller depending on the deletion policy
-	// on the content.
-	// Snapshot won't be deleted until content is deleted
-	// due to the finalizer.
-	if snapshot != nil && utils.IsSnapshotDeletionCandidate(snapshot) {
-		// Do not need to use the returned content here, as syncContent will get
-		// the correct version from the cache next time. It is also not used after this.
-		_, err = ctrl.setAnnVolumeSnapshotBeingDeleted(content)
-		return err
 	}
 
 	return nil

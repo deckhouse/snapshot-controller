@@ -76,15 +76,25 @@ func (handler *csiHandler) CreateSnapshot(content *crdv1.VolumeSnapshotContent, 
 	ctx, cancel := context.WithTimeout(context.Background(), handler.timeout)
 	defer cancel()
 
-	if content.Spec.VolumeSnapshotRef.UID == "" {
-		return "", "", time.Time{}, 0, false, fmt.Errorf("cannot create snapshot. Snapshot content %s not bound to a snapshot", content.Name)
+	// VSC-only model: VolumeSnapshotRef.UID may be empty. In this case, use VSC.UID for snapshot name.
+	// This allows VSC-only snapshots (created by VCR) to work without VolumeSnapshot.
+	// NOTE: We use content.UID (not content.Name) to match legacy behavior where VolumeSnapshotRef.UID is used.
+	// content.UID is stable for the lifetime of the object, but changes if VSC is recreated.
+	// Alternative: Using content.Name would be more stable across VSC recreations, but would diverge from legacy behavior.
+	var snapshotUID string
+	if content.Spec.VolumeSnapshotRef.UID != "" {
+		// Legacy mode: VolumeSnapshotRef is set - use it
+		snapshotUID = string(content.Spec.VolumeSnapshotRef.UID)
+	} else {
+		// VSC-only mode: VolumeSnapshotRef is empty - use VSC.UID
+		snapshotUID = string(content.UID)
 	}
 
 	if content.Spec.Source.VolumeHandle == nil {
 		return "", "", time.Time{}, 0, false, fmt.Errorf("cannot create snapshot. Volume handle not found in snapshot content %s", content.Name)
 	}
 
-	snapshotName, err := makeSnapshotName(handler.snapshotNamePrefix, string(content.Spec.VolumeSnapshotRef.UID), handler.snapshotNameUUIDLength)
+	snapshotName, err := makeSnapshotName(handler.snapshotNamePrefix, snapshotUID, handler.snapshotNameUUIDLength)
 	if err != nil {
 		return "", "", time.Time{}, 0, false, err
 	}

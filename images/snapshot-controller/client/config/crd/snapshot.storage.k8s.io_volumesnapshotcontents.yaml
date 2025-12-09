@@ -217,14 +217,13 @@ spec:
                 type: object
                 x-kubernetes-map-type: atomic
                 x-kubernetes-validations:
-                - message: both spec.volumeSnapshotRef.name and spec.volumeSnapshotRef.namespace
-                    must be set
-                  rule: has(self.name) && has(self.__namespace__)
+                - message: if spec.volumeSnapshotRef is set, both name and namespace must be specified together, or volumeSnapshotRef must be completely empty (VSC-only model)
+                  rule: '(has(self.name) && has(self.__namespace__)) || (!has(self.name) && !has(self.__namespace__) && !has(self.uid))'
             required:
             - deletionPolicy
             - driver
             - source
-            - volumeSnapshotRef
+            # volumeSnapshotRef is optional to support VSC-only model (VSC without VolumeSnapshot)
             type: object
             x-kubernetes-validations:
             - message: sourceVolumeMode is required once set
@@ -382,7 +381,7 @@ spec:
                 description: name of the VolumeSnapshotClass from which this snapshot was (or will be) created. Note that after provisioning, the VolumeSnapshotClass may be deleted or recreated with different set of values, and as such, should not be referenced post-snapshot creation.
                 type: string
               volumeSnapshotRef:
-                description: volumeSnapshotRef specifies the VolumeSnapshot object to which this VolumeSnapshotContent object is bound. VolumeSnapshot.Spec.VolumeSnapshotContentName field must reference to this VolumeSnapshotContent's name for the bidirectional binding to be valid. For a pre-existing VolumeSnapshotContent object, name and namespace of the VolumeSnapshot object MUST be provided for binding to happen. This field is immutable after creation. Required.
+                description: volumeSnapshotRef specifies the VolumeSnapshot object to which this VolumeSnapshotContent object is bound. VolumeSnapshot.Spec.VolumeSnapshotContentName field must reference to this VolumeSnapshotContent's name for the bidirectional binding to be valid. For a pre-existing VolumeSnapshotContent object, name and namespace of the VolumeSnapshot object MUST be provided for binding to happen. This field is immutable after creation. Optional - can be empty for VSC-only model (VSC created without VolumeSnapshot, e.g., by VCR controller).
                 properties:
                   apiVersion:
                     description: API version of the referent.
@@ -410,7 +409,7 @@ spec:
             - deletionPolicy
             - driver
             - source
-            - volumeSnapshotRef
+            # volumeSnapshotRef is optional to support VSC-only model (VSC without VolumeSnapshot)
             type: object
           status:
             description: status represents the current information of a snapshot.
