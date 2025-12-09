@@ -105,6 +105,15 @@ func (ctrl *csiSnapshotSideCarController) syncContent(content *crdv1.VolumeSnaps
 		}
 		return false, nil
 	}
+
+	// VSC-only model: If VolumeHandle is nil, we can't create snapshot and can't check status.
+	// Skip processing such VSC (it may be pre-provisioned with SnapshotHandle, but that's handled separately).
+	if content.Spec.Source.VolumeHandle == nil && (content.Status == nil || content.Status.SnapshotHandle == nil) {
+		// No VolumeHandle and no SnapshotHandle - nothing to do
+		klog.V(4).Infof("syncContent [%s]: skipping VSC without VolumeHandle and without SnapshotHandle", content.Name)
+		return false, nil
+	}
+
 	return ctrl.checkandUpdateContentStatus(content)
 }
 
@@ -360,8 +369,13 @@ func (ctrl *csiSnapshotSideCarController) createSnapshotWrapper(content *crdv1.V
 		return content, fmt.Errorf("failed to remove CSI Parameters of prefixed keys: %v", err)
 	}
 	if ctrl.extraCreateMetadata {
-		parameters[utils.PrefixedVolumeSnapshotNameKey] = content.Spec.VolumeSnapshotRef.Name
-		parameters[utils.PrefixedVolumeSnapshotNamespaceKey] = content.Spec.VolumeSnapshotRef.Namespace
+		// VSC-only model: VolumeSnapshotRef may be empty. If it's set, use it for backward compatibility.
+		// If empty, we still provide VSC name as metadata.
+		if content.Spec.VolumeSnapshotRef.Name != "" {
+			parameters[utils.PrefixedVolumeSnapshotNameKey] = content.Spec.VolumeSnapshotRef.Name
+			parameters[utils.PrefixedVolumeSnapshotNamespaceKey] = content.Spec.VolumeSnapshotRef.Namespace
+		}
+		// Always provide VSC name - this is the source of truth in VSC-only model
 		parameters[utils.PrefixedVolumeSnapshotContentNameKey] = content.Name
 	}
 
@@ -628,14 +642,9 @@ func (ctrl *csiSnapshotSideCarController) shouldDelete(content *crdv1.VolumeSnap
 	if content.ObjectMeta.DeletionTimestamp == nil {
 		return false
 	}
-	// 1) shouldDelete returns true if a content is not bound
-	// (VolumeSnapshotRef.UID == "") for pre-provisioned snapshot
-	if content.Spec.Source.SnapshotHandle != nil && content.Spec.VolumeSnapshotRef.UID == "" {
-		return true
-	}
 
 	// NOTE(xyang): Handle create snapshot timeout
-	// 2) shouldDelete returns false if AnnVolumeSnapshotBeingCreated
+	// shouldDelete returns false if AnnVolumeSnapshotBeingCreated
 	// annotation is set. This indicates a CreateSnapshot CSI RPC has
 	// not responded with success or failure.
 	// We need to keep waiting for a response from the CSI driver.
@@ -643,10 +652,25 @@ func (ctrl *csiSnapshotSideCarController) shouldDelete(content *crdv1.VolumeSnap
 		return false
 	}
 
-	// 3) shouldDelete returns true if AnnVolumeSnapshotBeingDeleted annotation is set
+	// Legacy: For pre-provisioned snapshots (SnapshotHandle in Source and VolumeSnapshotRef.UID == ""), delete immediately.
+	if content.Spec.Source.SnapshotHandle != nil && content.Spec.VolumeSnapshotRef.UID == "" {
+		return true
+	}
+
+	// VSC-only or legacy: shouldDelete returns true if AnnVolumeSnapshotBeingDeleted annotation is set.
+	// This annotation is set by common-controller when deletion should proceed.
 	if metav1.HasAnnotation(content.ObjectMeta, utils.AnnVolumeSnapshotBeingDeleted) {
 		return true
 	}
+
+	// VSC-only model: If DeletionTimestamp is set and we have SnapshotHandle in status,
+	// we can proceed with deletion. This covers VSC-only snapshots created by VCR.
+	// Common-controller may not set the annotation for VSC-only, so we check status directly.
+	if content.Status != nil && content.Status.SnapshotHandle != nil {
+		// We have a snapshot to delete - proceed with deletion
+		return true
+	}
+
 	return false
 }
 
