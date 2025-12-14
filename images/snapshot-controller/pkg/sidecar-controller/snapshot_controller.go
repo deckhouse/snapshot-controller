@@ -56,7 +56,15 @@ const controllerUpdateFailMsg = "snapshot controller failed to update"
 // syncContent deals with one key off the queue. It returns flag indicating if the
 // content should be requeued. On error, the content is always requeued.
 func (ctrl *csiSnapshotSideCarController) syncContent(content *crdv1.VolumeSnapshotContent) (requeue bool, err error) {
-	klog.V(5).Infof("synchronizing VolumeSnapshotContent[%s]", content.Name)
+	// Enhanced logging for VSC-only debugging
+	isVSCOnly := content.Spec.VolumeSnapshotRef.UID == "" &&
+		content.Spec.VolumeSnapshotRef.Name == "" &&
+		content.Spec.VolumeSnapshotRef.Namespace == ""
+	if isVSCOnly {
+		klog.V(4).Infof("synchronizing VolumeSnapshotContent[%s] (VSC-only, no VolumeSnapshotRef)", content.Name)
+	} else {
+		klog.V(5).Infof("synchronizing VolumeSnapshotContent[%s]", content.Name)
+	}
 
 	if ctrl.shouldDelete(content) {
 		klog.V(4).Infof("VolumeSnapshotContent[%s]: the policy is %s", content.Name, content.Spec.DeletionPolicy)
@@ -89,15 +97,18 @@ func (ctrl *csiSnapshotSideCarController) syncContent(content *crdv1.VolumeSnaps
 	// provisioning for an independent snapshot.
 	// VSC-only model: This condition also applies to VSC without VolumeSnapshotRef
 	_, groupSnapshotMember := content.Annotations[utils.VolumeGroupSnapshotHandleAnnotation]
-	isVSCOnly := content.Spec.VolumeSnapshotRef.UID == "" &&
-		content.Spec.VolumeSnapshotRef.Name == "" &&
-		content.Spec.VolumeSnapshotRef.Namespace == ""
 
 	if content.Spec.Source.VolumeHandle != nil && content.Status == nil && !groupSnapshotMember {
-		if isVSCOnly {
-			klog.V(4).Infof("syncContent [%s]: VSC-only detected, calling CreateSnapshot", content.Name)
+		className := "none"
+		if content.Spec.VolumeSnapshotClassName != nil {
+			className = *content.Spec.VolumeSnapshotClassName
 		}
-		klog.V(5).Infof("syncContent: Call CreateSnapshot for content %s", content.Name)
+		if isVSCOnly {
+			klog.Infof("syncContent [%s]: VSC-only detected, calling CreateSnapshot (VolumeHandle=%s, VolumeSnapshotClassName=%s)",
+				content.Name, *content.Spec.Source.VolumeHandle, className)
+		} else {
+			klog.V(5).Infof("syncContent: Call CreateSnapshot for content %s (legacy with VolumeSnapshotRef)", content.Name)
+		}
 		return ctrl.createSnapshot(content)
 	}
 
