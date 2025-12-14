@@ -87,10 +87,27 @@ func (ctrl *csiSnapshotSideCarController) syncContent(content *crdv1.VolumeSnaps
 
 	// Create snapshot calling the CSI driver only if it is a dynamic
 	// provisioning for an independent snapshot.
+	// VSC-only model: This condition also applies to VSC without VolumeSnapshotRef
 	_, groupSnapshotMember := content.Annotations[utils.VolumeGroupSnapshotHandleAnnotation]
+	isVSCOnly := content.Spec.VolumeSnapshotRef.UID == "" &&
+		content.Spec.VolumeSnapshotRef.Name == "" &&
+		content.Spec.VolumeSnapshotRef.Namespace == ""
+
 	if content.Spec.Source.VolumeHandle != nil && content.Status == nil && !groupSnapshotMember {
+		if isVSCOnly {
+			klog.V(4).Infof("syncContent [%s]: VSC-only detected, calling CreateSnapshot", content.Name)
+		}
 		klog.V(5).Infof("syncContent: Call CreateSnapshot for content %s", content.Name)
 		return ctrl.createSnapshot(content)
+	}
+
+	// Log why CreateSnapshot was not called (for debugging)
+	if content.Spec.Source.VolumeHandle == nil {
+		klog.V(4).Infof("syncContent [%s]: VolumeHandle is nil, skipping CreateSnapshot", content.Name)
+	} else if content.Status != nil {
+		klog.V(5).Infof("syncContent [%s]: Status is not nil (already processed), skipping CreateSnapshot", content.Name)
+	} else if groupSnapshotMember {
+		klog.V(4).Infof("syncContent [%s]: Group snapshot member, skipping CreateSnapshot", content.Name)
 	}
 
 	// Skip checkandUpdateContentStatus() if ReadyToUse is
