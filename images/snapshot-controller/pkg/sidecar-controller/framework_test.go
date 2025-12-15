@@ -333,6 +333,8 @@ func (r *snapshotReactor) checkContents(expectedContents []*crdv1.VolumeSnapshot
 		v := v.DeepCopy()
 		v.ResourceVersion = ""
 		v.Spec.VolumeSnapshotRef.ResourceVersion = ""
+		// Clear DeletionTimestamp to avoid time precision issues in comparison
+		v.DeletionTimestamp = nil
 		if v.Status != nil {
 			v.Status.CreationTime = nil
 		}
@@ -347,6 +349,8 @@ func (r *snapshotReactor) checkContents(expectedContents []*crdv1.VolumeSnapshot
 		v := v.DeepCopy()
 		v.ResourceVersion = ""
 		v.Spec.VolumeSnapshotRef.ResourceVersion = ""
+		// Clear DeletionTimestamp to avoid time precision issues in comparison
+		v.DeletionTimestamp = nil
 		if v.Status != nil {
 			v.Status.CreationTime = nil
 			if v.Status.Error != nil {
