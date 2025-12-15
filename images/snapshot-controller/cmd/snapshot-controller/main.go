@@ -180,6 +180,7 @@ func main() {
 		os.Exit(0)
 	}
 	klog.InfoS("Version", "version", version)
+	klog.InfoS("TEST", "test", "test")
 
 	// Create the client config. Use kubeconfig if given, otherwise assume in-cluster.
 	config, err := buildConfig(*kubeconfig)
