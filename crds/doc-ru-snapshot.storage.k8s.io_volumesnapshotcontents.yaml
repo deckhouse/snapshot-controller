@@ -1,0 +1,323 @@
+spec:
+  versions:
+  - name: v1beta1
+    schema:
+      openAPIV3Schema:
+        description: |-
+          VolumeSnapshotContent представляет фактический объект снапшота "на диске" в
+          нижележащей системе хранения.
+        properties:
+          apiVersion:
+            description: |-
+              Версия API представления объекта. Серверы преобразуют распознанные схемы
+              в последнее внутреннее значение и могут отклонять нераспознанные значения.
+              Подробнее: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+          kind:
+            description: |-
+              Тип REST-ресурса, который представляет объект. Серверы могут определять это значение
+              из конечной точки, на которую клиент отправляет запросы. Нельзя обновить
+              после создания. Значение должно быть в формате CamelCase.
+              Подробнее: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+          spec:
+            description: |-
+              Свойства VolumeSnapshotContent, созданного нижележащей системой хранения.
+            properties:
+              deletionPolicy:
+                description: |-
+                  Управляет поведением при удалении VolumeSnapshotContent и его физического снапшота
+                  при удалении связанного VolumeSnapshot.
+                  Поддерживаемые значения:
+
+                  `Retain` – VolumeSnapshotContent и его физический снапшот в нижележащей системе хранения сохраняются.
+                  `Delete` – VolumeSnapshotContent и его физический снапшот в нижележащей системе хранения удаляются.
+
+                  Для динамически созданных снапшотов автоматически заполняется
+                  CSI snapshotter sidecar значением поля `DeletionPolicy`, определенным в соответствующем
+                  VolumeSnapshotClass.
+                  Для существующих снапшотов **необходимо указать** при создании
+                  объекта VolumeSnapshotContent.
+              driver:
+                description: |-
+                  Имя CSI-драйвера, используемого для создания физического снапшота в нижележащей системе хранения.
+                  Должно совпадать с именем, возвращаемым вызовом CSI GetPluginName() для этого драйвера.
+              source:
+                description: |-
+                  Указывает, является ли снапшот (или должен быть) динамически созданным
+                  или уже существует и требует только представления в виде объекта Kubernetes.
+                  Неизменяемо после создания.
+                properties:
+                  snapshotHandle:
+                    description: |-
+                      CSI `snapshot_id` существующего снапшота в нижележащей системе хранения,
+                      для которого было (или должно быть) создано представление в виде объекта Kubernetes.
+                      Неизменяемо.
+                  volumeHandle:
+                    description: |-
+                      CSI `volume_id` тома, из которого должен быть динамически создан снапшот.
+                      Неизменяемо.
+              sourceVolumeMode:
+                description: |-
+                  Режим тома, снапшот которого создается. Может быть `Filesystem` или `Block`.
+                  Если не указано, режим исходного тома неизвестен.
+                  Неизменяемо.
+                  Поле находится в стадии альфа.
+              volumeSnapshotClassName:
+                description: |-
+                  Имя VolumeSnapshotClass, из которого был (или будет) создан этот снапшот.
+                  После создания снапшота VolumeSnapshotClass может быть удален или
+                  пересоздан с другими значениями и не должен использоваться.
+              volumeSnapshotRef:
+                description: |-
+                  Объект VolumeSnapshot, к которому привязан этот VolumeSnapshotContent.
+                  Поле VolumeSnapshot.Spec.VolumeSnapshotContentName должно ссылаться
+                  на имя этого VolumeSnapshotContent для валидности двунаправленной привязки.
+                  Для существующего объекта VolumeSnapshotContent **необходимо указать** имя и неймспейс объекта
+                  VolumeSnapshot для привязки.
+                  Неизменяемо после создания.
+                properties:
+                  apiVersion:
+                    description: |-
+                      Версия API референта.
+                  fieldPath:
+                    description: |-
+                      Если ссылается на часть объекта вместо всего объекта, должна содержать
+                      допустимое выражение доступа к полю JSON/Go, например `desiredState.manifest.containers[2]`.
+                      Например, если ссылка на объект указывает на контейнер в поде, может иметь значение:
+                      `spec.containers{name}` (где `name` относится к имени контейнера, который вызвал
+                      событие) или если имя контейнера не указано `spec.containers[2]` (контейнер с
+                      индексом 2 в этом поде). Этот синтаксис выбран только для того, чтобы иметь четко определенный способ
+                      ссылки на часть объекта.
+                      TODO: этот дизайн не является окончательным, и поле может быть изменено в будущем.
+                  kind:
+                    description: |-
+                      Тип референта.
+                      Подробнее: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+                  name:
+                    description: |-
+                      Имя референта.
+                      Подробнее: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                  namespace:
+                    description: |-
+                      Неймспейс референта.
+                      Подробнее: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/
+                  resourceVersion:
+                    description: |-
+                      Конкретная версия ресурса, на которую сделана эта ссылка, если есть.
+                      Подробнее: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency
+                  uid:
+                    description: |-
+                      UID референта.
+                      Подробнее: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids
+          status:
+            description: |-
+              Текущая информация о снапшоте.
+            properties:
+              creationTime:
+                description: |-
+                  Временная метка создания точечного снапшота нижележащей системой хранения.
+                  При динамическом создании снапшота заполняется
+                  CSI snapshotter sidecar значением `creation_time`, возвращаемым из вызова gRPC
+                  `CreateSnapshot` CSI.
+                  Для существующего снапшота заполняется значением `creation_time`,
+                  возвращаемым из вызова gRPC `ListSnapshots` CSI, если драйвер поддерживает это.
+                  Если не указано, время создания неизвестно.
+                  Формат — время в наносекундах Unix, закодированное как int64.
+                  В Unix команда `date +%s%N` возвращает текущее время в наносекундах
+                  с 1970-01-01 00:00:00 UTC.
+              error:
+                description: |-
+                  Последняя наблюдаемая ошибка при создании снапшота, если есть.
+                  После успешного повтора поле очищается.
+                properties:
+                  message:
+                    description: |-
+                      Детали возникшей ошибки при создании снапшота, если указаны.
+                      **Примечание:** сообщение может быть залогировано и не должно содержать конфиденциальную информацию.
+                  time:
+                    description: |-
+                      Временная метка, когда была обнаружена ошибка.
+              readyToUse:
+                description: |-
+                  Указывает, готов ли снапшот для восстановления тома.
+                  При динамическом создании снапшота заполняется
+                  CSI snapshotter sidecar значением `ready_to_use`, возвращаемым из вызова gRPC
+                  `CreateSnapshot` CSI.
+                  Для существующего снапшота заполняется значением `ready_to_use`,
+                  возвращаемым из вызова gRPC `ListSnapshots` CSI, если драйвер поддерживает это,
+                  иначе устанавливается в `True`.
+                  Если не указано, готовность снапшота неизвестна.
+              restoreSize:
+                description: |-
+                  Полный размер снапшота в байтах.
+                  При динамическом создании снапшота заполняется
+                  CSI snapshotter sidecar значением `size_bytes`, возвращаемым из вызова gRPC
+                  `CreateSnapshot` CSI.
+                  Для существующего снапшота заполняется значением `size_bytes`,
+                  возвращаемым из вызова gRPC `ListSnapshots` CSI, если драйвер поддерживает это.
+                  При восстановлении тома из этого снапшота размер тома **не должен**
+                  быть меньше restoreSize, если он указан, иначе восстановление завершится ошибкой.
+                  Если не указано, размер неизвестен.
+              snapshotHandle:
+                description: |-
+                  CSI `snapshot_id` снапшота в нижележащей системе хранения.
+                  Если не указано, динамическое создание снапшота либо завершилось ошибкой,
+                  либо все еще выполняется.
+              volumeGroupSnapshotHandle:
+                description: |-
+                  CSI `group_snapshot_id` группового снапшота в нижележащей системе хранения.
+  - name: v1beta1
+    schema:
+      openAPIV3Schema:
+        description: |-
+          VolumeSnapshotContent представляет фактический объект снапшота "на диске" в
+          нижележащей системе хранения.
+        properties:
+          apiVersion:
+            description: |-
+              Версия API представления объекта. Серверы преобразуют распознанные схемы
+              в последнее внутреннее значение и могут отклонять нераспознанные значения.
+              Подробнее: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+          kind:
+            description: |-
+              Тип REST-ресурса, который представляет объект. Серверы могут определять это значение
+              из конечной точки, на которую клиент отправляет запросы. Нельзя обновить
+              после создания. Значение должно быть в формате CamelCase.
+              Подробнее: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+          spec:
+            description: |-
+              Свойства VolumeSnapshotContent, созданного нижележащей системой хранения.
+            properties:
+              deletionPolicy:
+                description: |-
+                  Управляет поведением при удалении VolumeSnapshotContent и его физического снапшота
+                  при удалении связанного VolumeSnapshot.
+                  Поддерживаемые значения:
+
+                  `Retain` – VolumeSnapshotContent и его физический снапшот в нижележащей системе хранения сохраняются.
+                  `Delete` – VolumeSnapshotContent и его физический снапшот в нижележащей системе хранения удаляются.
+                  
+                  Для динамически созданных снапшотов автоматически заполняется
+                  CSI snapshotter sidecar значением поля `DeletionPolicy`, определенным в соответствующем
+                  VolumeSnapshotClass.
+                  Для существующих снапшотов **необходимо указать** при создании
+                  объекта VolumeSnapshotContent.
+              driver:
+                description: |-
+                  Имя CSI-драйвера, используемого для создания физического снапшота в нижележащей системе хранения.
+                  Должно совпадать с именем, возвращаемым вызовом CSI GetPluginName() для этого драйвера.
+              source:
+                description: |-
+                  Указывает, является ли снапшот (или должен быть) динамически созданным
+                  или уже существует и требует только представления в виде объекта Kubernetes.
+                  Неизменяемо после создания.
+                properties:
+                  snapshotHandle:
+                    description: |-
+                      CSI `snapshot_id` существующего снапшота в нижележащей системе хранения,
+                      для которого было (или должно быть) создано представление в виде объекта Kubernetes.
+                      Неизменяемо.
+                  volumeHandle:
+                    description: |-
+                      CSI `volume_id` тома, из которого должен быть динамически создан снапшот.
+                      Неизменяемо.
+              volumeSnapshotClassName:
+                description: |-
+                  Имя VolumeSnapshotClass, из которого был (или будет) создан этот снапшот.
+                  После создания снапшота VolumeSnapshotClass может быть удален или
+                  пересоздан с другими значениями и не должен использоваться.
+              volumeSnapshotRef:
+                description: |-
+                  Объект VolumeSnapshot, к которому привязан этот VolumeSnapshotContent.
+                  Поле VolumeSnapshot.Spec.VolumeSnapshotContentName должно ссылаться
+                  на имя этого VolumeSnapshotContent для валидности двунаправленной привязки.
+                  Для существующего объекта VolumeSnapshotContent **необходимо указать** имя и неймспейс объекта
+                  VolumeSnapshot для привязки.
+                  Неизменяемо после создания.
+                properties:
+                  apiVersion:
+                    description: |-
+                      Версия API референта.
+                  fieldPath:
+                    description: |-
+                      Если ссылается на часть объекта вместо всего объекта, строка должна содержать
+                      допустимое выражение доступа к полю JSON/Go, например `desiredState.manifest.containers[2]`.
+                      Например, если ссылка на объект указывает на контейнер в поде, может иметь значение:
+                      `spec.containers{name}` (где `name` относится к имени контейнера, который вызвал
+                      событие) или если имя контейнера не указано `spec.containers[2]` (контейнер с
+                      индексом 2 в этом поде). Этот синтаксис выбран только для того, чтобы иметь четко определенный способ
+                      ссылки на часть объекта.
+                      TODO: этот дизайн не является окончательным, и поле может быть изменено в будущем.
+                  kind:
+                    description: |-
+                      Тип референта.
+                      Подробнее: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+                  name:
+                    description: |-
+                      Имя референта.
+                      Подробнее: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                  namespace:
+                    description: |-
+                      Неймспейс референта.
+                      Подробнее: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/
+                  resourceVersion:
+                    description: |-
+                      Конкретная версия ресурса, на которую сделана эта ссылка, если есть.
+                      Подробнее: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency
+                  uid:
+                    description: |-
+                      UID референта.
+                      Подробнее: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids
+          status:
+            description: |-
+              Текущая информация о снапшоте.
+            properties:
+              creationTime:
+                description: |-
+                  Временная метка создания точечного снапшота нижележащей системой хранения.
+                  При динамическом создании снапшота заполняется
+                  CSI snapshotter sidecar значением `creation_time`, возвращаемым из вызова gRPC
+                  `CreateSnapshot` CSI.
+                  Для существующего снапшота заполняется значением `creation_time`,
+                  возвращаемым из вызова gRPC `ListSnapshots` CSI, если драйвер поддерживает это.
+                  Если не указано, время создания неизвестно.
+                  Формат — время в наносекундах Unix, закодированное как int64.
+                  В Unix команда `date +%s%N` возвращает текущее время в наносекундах
+                  с 1970-01-01 00:00:00 UTC.
+              error:
+                description: |-
+                  Последняя наблюдаемая ошибка при создании снапшота, если есть.
+                  После успешного повтора поле очищается.
+                properties:
+                  message:
+                    description: |-
+                      Детали возникшей ошибки при создании снапшота, если указаны.
+                      **Примечание:** сообщение может быть залогировано и не должно содержать конфиденциальную информацию.
+                  time:
+                    description: |-
+                      Временная метка, когда была обнаружена ошибка.
+              readyToUse:
+                description: |-
+                  Указывает, готов ли снапшот для восстановления тома.
+                  При динамическом создании снапшота заполняется
+                  CSI snapshotter sidecar значением `ready_to_use`, возвращаемым из вызова gRPC
+                  `CreateSnapshot` CSI.
+                  Для существующего снапшота заполняется значением `ready_to_use`,
+                  возвращаемым из вызова gRPC `ListSnapshots` CSI, если драйвер поддерживает это,
+                  иначе устанавливается в `True`.
+                  Если не указано, готовность снапшота неизвестна.
+              restoreSize:
+                description: |-
+                  Полный размер снапшота в байтах.
+                  При динамическом создании снапшота заполняется
+                  CSI snapshotter sidecar значением `size_bytes`, возвращаемым из вызова gRPC
+                  `CreateSnapshot` CSI.
+                  Для существующего снапшота заполняется значением `size_bytes`,
+                  возвращаемым из вызова gRPC `ListSnapshots` CSI, если драйвер поддерживает это.
+                  При восстановлении тома из этого снапшота размер тома **не должен**
+                  быть меньше restoreSize, если он указан, иначе восстановление завершится ошибкой.
+                  Если не указано, размер неизвестен.
+              snapshotHandle:
+                description: |-
+                  CSI `snapshot_id` снапшота в нижележащей системе хранения.
+                  Если не указано, динамическое создание снапшота либо завершилось ошибкой,
+                  либо все еще выполняется.

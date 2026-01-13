@@ -25,7 +25,7 @@ spec:
     - jsonPath: .driver
       name: Driver
       type: string
-    - description: Determines whether a VolumeSnapshotContent created through the VolumeSnapshotClass should be deleted when its bound VolumeSnapshot is deleted.
+    - description: Controls whether the VolumeSnapshotContent and its physical snapshot are deleted when the bound VolumeSnapshot is deleted.
       jsonPath: .deletionPolicy
       name: DeletionPolicy
       type: string
@@ -36,41 +36,38 @@ spec:
     schema:
       openAPIV3Schema:
         description: |-
-          VolumeSnapshotClass specifies parameters that a underlying storage system uses when
-          creating a volume snapshot. A specific VolumeSnapshotClass is used by specifying its
-          name in a VolumeSnapshot object.
-          VolumeSnapshotClasses are non-namespaced
+          VolumeSnapshotClass defines parameters for volume snapshot creation used
+          by the underlying storage system. To use, reference by name
+          in a VolumeSnapshot object.
+          Non-namespaced resource.
         properties:
           apiVersion:
             description: |-
-              APIVersion defines the versioned schema of this representation of an object.
-              Servers should convert recognized schemas to the latest internal value, and
-              may reject unrecognized values.
+              API version of this object representation. Servers convert recognized schemas
+              to the latest internal value and may reject unrecognized values.
               More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
             type: string
           deletionPolicy:
             description: |-
-              deletionPolicy determines whether a VolumeSnapshotContent created through
-              the VolumeSnapshotClass should be deleted when its bound VolumeSnapshot is deleted.
-              Supported values are "Retain" and "Delete".
-              "Retain" means that the VolumeSnapshotContent and its physical snapshot on underlying storage system are kept.
-              "Delete" means that the VolumeSnapshotContent and its physical snapshot on underlying storage system are deleted.
-              Required.
+              Controls the deletion behavior of VolumeSnapshotContent and its physical snapshot
+              when the bound VolumeSnapshot is deleted.
+              Supported values:
+
+              `Retain`: VolumeSnapshotContent and its physical snapshot on the underlying storage system are preserved.
+              `Delete`: VolumeSnapshotContent and its physical snapshot on the underlying storage system are removed.
             enum:
             - Delete
             - Retain
             type: string
           driver:
             description: |-
-              driver is the name of the storage driver that handles this VolumeSnapshotClass.
-              Required.
+              Name of the storage driver that handles this VolumeSnapshotClass.
             type: string
           kind:
             description: |-
-              Kind is a string value representing the REST resource this object represents.
-              Servers may infer this from the endpoint the client submits requests to.
-              Cannot be updated.
-              In CamelCase.
+              Kind of REST resource this object represents. Servers may infer this value
+              from the endpoint the client submits requests to. Cannot be updated
+              after creation. Value must be in CamelCase.
               More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
             type: string
           metadata:
@@ -79,8 +76,8 @@ spec:
             additionalProperties:
               type: string
             description: |-
-              parameters is a key-value map with storage driver specific parameters for creating snapshots.
-              These values are opaque to Kubernetes.
+              Key-value map of driver-specific parameters used when creating snapshots.
+              Parameters are not interpreted by Kubernetes.
             type: object
         required:
         - deletionPolicy
@@ -93,7 +90,7 @@ spec:
     - jsonPath: .driver
       name: Driver
       type: string
-    - description: Determines whether a VolumeSnapshotContent created through the VolumeSnapshotClass should be deleted when its bound VolumeSnapshot is deleted.
+    - description: Controls whether the VolumeSnapshotContent and its physical snapshot are deleted when the bound VolumeSnapshot is deleted.
       jsonPath: .deletionPolicy
       name: DeletionPolicy
       type: string
@@ -108,27 +105,47 @@ spec:
     deprecationWarning: "snapshot.storage.k8s.io/v1beta1 VolumeSnapshotClass is deprecated; use snapshot.storage.k8s.io/v1 VolumeSnapshotClass"
     schema:
       openAPIV3Schema:
-        description: VolumeSnapshotClass specifies parameters that a underlying storage system uses when creating a volume snapshot. A specific VolumeSnapshotClass is used by specifying its name in a VolumeSnapshot object. VolumeSnapshotClasses are non-namespaced
+        description: |-
+          VolumeSnapshotClass defines parameters for volume snapshot creation used
+          by the underlying storage system. To use, reference by name
+          in a VolumeSnapshot object.
+          Non-namespaced resource.
         properties:
           apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            description: |-
+              API version of this object representation. Servers convert recognized schemas
+              to the latest internal value and may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
             type: string
           deletionPolicy:
-            description: deletionPolicy determines whether a VolumeSnapshotContent created through the VolumeSnapshotClass should be deleted when its bound VolumeSnapshot is deleted. Supported values are "Retain" and "Delete". "Retain" means that the VolumeSnapshotContent and its physical snapshot on underlying storage system are kept. "Delete" means that the VolumeSnapshotContent and its physical snapshot on underlying storage system are deleted. Required.
+            description: |-
+              Controls the deletion behavior of VolumeSnapshotContent and its physical snapshot
+              when the bound VolumeSnapshot is deleted.
+              Supported values:
+
+              `Retain`: VolumeSnapshotContent and its physical snapshot on the underlying storage system are preserved.
+              `Delete`: VolumeSnapshotContent and its physical snapshot on the underlying storage system are removed.
             enum:
             - Delete
             - Retain
             type: string
           driver:
-            description: driver is the name of the storage driver that handles this VolumeSnapshotClass. Required.
+            description: |-
+              Name of the storage driver that handles this VolumeSnapshotClass.
             type: string
           kind:
-            description: 'Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            description: |-
+              Kind of REST resource this object represents. Servers may infer this value
+              from the endpoint the client submits requests to. Cannot be updated
+              after creation. Value must be in CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
             type: string
           parameters:
             additionalProperties:
               type: string
-            description: parameters is a key-value map with storage driver specific parameters for creating snapshots. These values are opaque to Kubernetes.
+            description: |-
+              Key-value map of driver-specific parameters used when creating snapshots.
+              Parameters are not interpreted by Kubernetes.
             type: object
         required:
         - deletionPolicy

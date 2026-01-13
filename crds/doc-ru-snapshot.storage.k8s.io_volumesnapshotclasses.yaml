@@ -1,0 +1,78 @@
+spec:
+  versions:
+  - name: v1
+    additionalPrinterColumns:
+    - description: Управляет удалением VolumeSnapshotContent и его физического снапшота при удалении связанного VolumeSnapshot.
+    schema:
+      openAPIV3Schema:
+        description: |-
+          VolumeSnapshotClass определяет параметры для создания снапшотов томов, используемые
+          нижележащей системой хранения. Для использования укажите имя VolumeSnapshotClass
+          в объекте VolumeSnapshot.
+          Non-namespaced ресурс.
+        properties:
+          apiVersion:
+            description: |-
+              Версия API представления объекта. Серверы преобразуют распознанные схемы
+              в последнее внутреннее значение и могут отклонять нераспознанные значения.
+              Подробнее: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+          deletionPolicy:
+            description: |-
+              Управляет поведением при удалении VolumeSnapshotContent и его физического снапшота
+              при удалении связанного VolumeSnapshot.
+              Поддерживаемые значения:
+
+              `Retain` – VolumeSnapshotContent и его физический снапшот в нижележащей системе хранения сохраняются.
+              `Delete` – VolumeSnapshotContent и его физический снапшот в нижележащей системе хранения удаляются.
+          driver:
+            description: |-
+              Имя драйвера хранения, который обрабатывает этот VolumeSnapshotClass.
+          kind:
+            description: |-
+              Тип REST-ресурса, который представляет объект. Серверы могут определять это значение
+              из конечной точки, на которую клиент отправляет запросы. Нельзя обновить
+              после создания. Значение должно быть в формате CamelCase.
+              Подробнее: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+          parameters:
+            additionalProperties:
+            description: |-
+              Карта ключ-значение с параметрами, специфичными для драйвера хранения, используемыми при создании снапшотов.
+              Параметры прозрачны для Kubernetes.
+  - name: v1beta1
+    additionalPrinterColumns:
+    - description: Управляет удалением VolumeSnapshotContent и его физического снапшота при удалении связанного VolumeSnapshot.
+    schema:
+      openAPIV3Schema:
+        description: |-
+          VolumeSnapshotClass определяет параметры для создания снапшотов томов, используемые
+          нижележащей системой хранения. Для использования укажите имя VolumeSnapshotClass
+          в объекте VolumeSnapshot.
+          Non-namespaced ресурс.
+        properties:
+          apiVersion:
+            description: |-
+              Версия API представления объекта. Серверы преобразуют распознанные схемы
+              в последнее внутреннее значение и могут отклонять нераспознанные значения.
+              Подробнее: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+          deletionPolicy:
+            description: |-
+              Управляет поведением при удалении VolumeSnapshotContent и его физического снапшота
+              при удалении связанного VolumeSnapshot.
+              Поддерживаемые значения:
+
+              `Retain` — VolumeSnapshotContent и его физический снапшот в нижележащей системе хранения сохраняются.
+              `Delete` — VolumeSnapshotContent и его физический снапшот в нижележащей системе хранения удаляются.
+          driver:
+            description: |-
+              Имя драйвера хранения, который обрабатывает этот VolumeSnapshotClass.
+          kind:
+            description: |-
+              Тип REST-ресурса, который представляет объект. Серверы могут определять это значение
+              из конечной точки, на которую клиент отправляет запросы. Нельзя обновить
+              после создания. Значение должно быть в формате CamelCase.
+              Подробнее: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+          parameters:
+            additionalProperties:
+            description: |-
+              Карта ключ-значение с параметрами, специфичными для драйвера хранения, используемыми при создании снапшотов.
+              Параметры прозрачны для Kubernetes.
