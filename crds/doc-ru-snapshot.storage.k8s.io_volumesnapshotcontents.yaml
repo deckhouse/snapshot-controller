@@ -1,6 +1,6 @@
 spec:
   versions:
-  - name: v1beta1
+  - name: v1
     schema:
       openAPIV3Schema:
         description: |-
@@ -28,8 +28,8 @@ spec:
                   при удалении связанного VolumeSnapshot.
                   Поддерживаемые значения:
 
-                  `Retain` – VolumeSnapshotContent и его физический снапшот в нижележащей системе хранения сохраняются.
-                  `Delete` – VolumeSnapshotContent и его физический снапшот в нижележащей системе хранения удаляются.
+                  - `Retain` — VolumeSnapshotContent и его физический снапшот в нижележащей системе хранения сохраняются.
+                  - `Delete` — VolumeSnapshotContent и его физический снапшот в нижележащей системе хранения удаляются.
 
                   Для динамически созданных снапшотов автоматически заполняется
                   CSI snapshotter sidecar значением поля `DeletionPolicy`, определенным в соответствующем
@@ -193,8 +193,8 @@ spec:
                   при удалении связанного VolumeSnapshot.
                   Поддерживаемые значения:
 
-                  `Retain` – VolumeSnapshotContent и его физический снапшот в нижележащей системе хранения сохраняются.
-                  `Delete` – VolumeSnapshotContent и его физический снапшот в нижележащей системе хранения удаляются.
+                  - `Retain` — VolumeSnapshotContent и его физический снапшот в нижележащей системе хранения сохраняются.
+                  - `Delete` — VolumeSnapshotContent и его физический снапшот в нижележащей системе хранения удаляются.
                   
                   Для динамически созданных снапшотов автоматически заполняется
                   CSI snapshotter sidecar значением поля `DeletionPolicy`, определенным в соответствующем

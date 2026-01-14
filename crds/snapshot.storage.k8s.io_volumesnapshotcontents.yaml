@@ -85,8 +85,8 @@ spec:
                   when the bound VolumeSnapshot is deleted.
                   Supported values:
 
-                  `Retain`: VolumeSnapshotContent and its physical snapshot on the underlying storage system are preserved.
-                  `Delete`: VolumeSnapshotContent and its physical snapshot on the underlying storage system are removed.
+                  - `Retain`: VolumeSnapshotContent and its physical snapshot on the underlying storage system are preserved.
+                  - `Delete`: VolumeSnapshotContent and its physical snapshot on the underlying storage system are removed.
                   
                   For dynamically provisioned snapshots, automatically filled by the
                   CSI snapshotter sidecar with the `DeletionPolicy` field defined in the corresponding
@@ -360,8 +360,8 @@ spec:
                   when the bound VolumeSnapshot is deleted.
                   Supported values:
 
-                  `Retain`: VolumeSnapshotContent and its physical snapshot on the underlying storage system are preserved.
-                  `Delete`: VolumeSnapshotContent and its physical snapshot on the underlying storage system are removed.
+                  - `Retain`: VolumeSnapshotContent and its physical snapshot on the underlying storage system are preserved.
+                  - `Delete`: VolumeSnapshotContent and its physical snapshot on the underlying storage system are removed.
                   For dynamically provisioned snapshots, automatically filled by the
                   CSI snapshotter sidecar with the `DeletionPolicy` field defined in the corresponding
                   VolumeSnapshotClass.

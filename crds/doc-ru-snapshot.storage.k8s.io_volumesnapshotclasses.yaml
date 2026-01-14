@@ -22,8 +22,8 @@ spec:
               при удалении связанного VolumeSnapshot.
               Поддерживаемые значения:
 
-              `Retain` – VolumeSnapshotContent и его физический снапшот в нижележащей системе хранения сохраняются.
-              `Delete` – VolumeSnapshotContent и его физический снапшот в нижележащей системе хранения удаляются.
+              - `Retain` — VolumeSnapshotContent и его физический снапшот в нижележащей системе хранения сохраняются.
+              - `Delete` — VolumeSnapshotContent и его физический снапшот в нижележащей системе хранения удаляются.
           driver:
             description: |-
               Имя драйвера хранения, который обрабатывает этот VolumeSnapshotClass.
@@ -60,8 +60,8 @@ spec:
               при удалении связанного VolumeSnapshot.
               Поддерживаемые значения:
 
-              `Retain` — VolumeSnapshotContent и его физический снапшот в нижележащей системе хранения сохраняются.
-              `Delete` — VolumeSnapshotContent и его физический снапшот в нижележащей системе хранения удаляются.
+              - `Retain` —  VolumeSnapshotContent и его физический снапшот в нижележащей системе хранения сохраняются.
+              - `Delete` —  VolumeSnapshotContent и его физический снапшот в нижележащей системе хранения удаляются.
           driver:
             description: |-
               Имя драйвера хранения, который обрабатывает этот VolumeSnapshotClass.

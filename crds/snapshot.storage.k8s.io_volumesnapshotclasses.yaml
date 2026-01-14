@@ -53,8 +53,8 @@ spec:
               when the bound VolumeSnapshot is deleted.
               Supported values:
 
-              `Retain`: VolumeSnapshotContent and its physical snapshot on the underlying storage system are preserved.
-              `Delete`: VolumeSnapshotContent and its physical snapshot on the underlying storage system are removed.
+              - `Retain`: VolumeSnapshotContent and its physical snapshot on the underlying storage system are preserved.
+              - `Delete`: VolumeSnapshotContent and its physical snapshot on the underlying storage system are removed.
             enum:
             - Delete
             - Retain
@@ -123,8 +123,8 @@ spec:
               when the bound VolumeSnapshot is deleted.
               Supported values:
 
-              `Retain`: VolumeSnapshotContent and its physical snapshot on the underlying storage system are preserved.
-              `Delete`: VolumeSnapshotContent and its physical snapshot on the underlying storage system are removed.
+              - `Retain`: VolumeSnapshotContent and its physical snapshot on the underlying storage system are preserved.
+              - `Delete`: VolumeSnapshotContent and its physical snapshot on the underlying storage system are removed.
             enum:
             - Delete
             - Retain
