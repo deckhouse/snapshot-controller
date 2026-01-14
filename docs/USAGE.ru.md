@@ -2,7 +2,7 @@
 title: "Модуль snapshot-controller: примеры конфигурации"
 ---
 
-### Использование снапшотов
+## Использование снапшотов
 
 Для использования снапшотов укажите [VolumeSnapshotClass](/modules/snapshot-controller/cr.html#volumesnapshotclass).
 Чтобы получить список доступных [VolumeSnapshotClass](/modules/snapshot-controller/cr.html#volumesnapshotclass) в кластере, выполните:
@@ -65,7 +65,7 @@ spec:
       storage: 500Mi
 ```
 
-### Клонирование CSI-томов
+## Клонирование CSI-томов
 
 Также можно клонировать Persistent Volume (PV) на основе концепции снапшотов, а именно существующие PVC.
 Обратите внимание, что спецификация CSI имеет ограничения при клонировании PVC в неймспейсах и StorageClass, отличных от исходного PVC.

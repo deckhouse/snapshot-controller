@@ -215,7 +215,7 @@ spec:
                   For a pre-existing snapshot, filled with the `size_bytes`
                   value returned from the CSI `ListSnapshots` gRPC call if the driver supports it.
                   When restoring a volume from this snapshot, the volume size **must not**
-                  be smaller than the restoreSize if specified, otherwise the restoration will fail.
+                  be smaller than the `restoreSize` if specified, otherwise the restoration will fail.
                   If not specified, the size is unknown.
                 pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                 x-kubernetes-int-or-string: true
@@ -401,7 +401,7 @@ spec:
                   For a pre-existing snapshot, filled with the `size_bytes`
                   value returned from the CSI `ListSnapshots` gRPC call if the driver supports it.
                   When restoring a volume from this snapshot, the volume size **must not**
-                  be smaller than the restoreSize if specified, otherwise the restoration will fail.
+                  be smaller than the `restoreSize` if specified, otherwise the restoration will fail.
                   If not specified, the size is unknown.
                 pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                 x-kubernetes-int-or-string: true

@@ -4,7 +4,7 @@ spec:
     schema:
       openAPIV3Schema:
         description: |-
-          VolumeSnapshotContent представляет фактический объект снапшота "на диске" в
+          VolumeSnapshotContent представляет фактический объект снапшота «на диске» в
           нижележащей системе хранения.
         properties:
           apiVersion:
@@ -68,8 +68,8 @@ spec:
                   пересоздан с другими значениями и не должен использоваться.
               volumeSnapshotRef:
                 description: |-
-                  Объект VolumeSnapshot, к которому привязан этот VolumeSnapshotContent.
-                  Поле VolumeSnapshot.Spec.VolumeSnapshotContentName должно ссылаться
+                  Объект VolumeSnapshot (далее — референт), к которому привязан этот VolumeSnapshotContent.
+                  Поле `VolumeSnapshot.Spec.VolumeSnapshotContentName` должно ссылаться
                   на имя этого VolumeSnapshotContent для валидности двунаправленной привязки.
                   Для существующего объекта VolumeSnapshotContent **необходимо указать** имя и неймспейс объекта
                   VolumeSnapshot для привязки.
@@ -155,7 +155,7 @@ spec:
                   Для существующего снапшота заполняется значением `size_bytes`,
                   возвращаемым из вызова gRPC `ListSnapshots` CSI, если драйвер поддерживает это.
                   При восстановлении тома из этого снапшота размер тома **не должен**
-                  быть меньше restoreSize, если он указан, иначе восстановление завершится ошибкой.
+                  быть меньше `restoreSize`, если он указан, иначе восстановление завершится ошибкой.
                   Если не указано, размер неизвестен.
               snapshotHandle:
                 description: |-
@@ -169,7 +169,7 @@ spec:
     schema:
       openAPIV3Schema:
         description: |-
-          VolumeSnapshotContent представляет фактический объект снапшота "на диске" в
+          VolumeSnapshotContent представляет фактический объект снапшота «на диске» в
           нижележащей системе хранения.
         properties:
           apiVersion:
@@ -227,8 +227,8 @@ spec:
                   пересоздан с другими значениями и не должен использоваться.
               volumeSnapshotRef:
                 description: |-
-                  Объект VolumeSnapshot, к которому привязан этот VolumeSnapshotContent.
-                  Поле VolumeSnapshot.Spec.VolumeSnapshotContentName должно ссылаться
+                  Объект VolumeSnapshot (далее — референт), к которому привязан этот VolumeSnapshotContent.
+                  Поле `VolumeSnapshot.Spec.VolumeSnapshotContentName` должно ссылаться
                   на имя этого VolumeSnapshotContent для валидности двунаправленной привязки.
                   Для существующего объекта VolumeSnapshotContent **необходимо указать** имя и неймспейс объекта
                   VolumeSnapshot для привязки.
@@ -314,7 +314,7 @@ spec:
                   Для существующего снапшота заполняется значением `size_bytes`,
                   возвращаемым из вызова gRPC `ListSnapshots` CSI, если драйвер поддерживает это.
                   При восстановлении тома из этого снапшота размер тома **не должен**
-                  быть меньше restoreSize, если он указан, иначе восстановление завершится ошибкой.
+                  быть меньше `restoreSize`, если он указан, иначе восстановление завершится ошибкой.
                   Если не указано, размер неизвестен.
               snapshotHandle:
                 description: |-

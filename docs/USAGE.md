@@ -2,7 +2,7 @@
 title: "The snapshot-controller module: configuration examples"
 ---
 
-### Using snapshots
+## Using snapshots
 
 Specify a [VolumeSnapshotClass](/modules/snapshot-controller/cr.html#volumesnapshotclass) to use snapshots.
 To get a list of available [VolumeSnapshotClass](/modules/snapshot-controller/cr.html#volumesnapshotclass) in your cluster, run:
@@ -65,7 +65,7 @@ spec:
       storage: 500Mi
 ```
 
-### CSI Volume Cloning
+## CSI Volume Cloning
 
 You can also clone Persistent Volume (PV) using the snapshot concept (clone existing PVC).
 Note that the CSI specification has restrictions when cloning PVCs in different namespaces and StorageClass than the original PVC.

@@ -154,8 +154,8 @@ spec:
                 type: string
               volumeSnapshotRef:
                 description: |-
-                  VolumeSnapshot object to which this VolumeSnapshotContent is bound.
-                  VolumeSnapshot.Spec.VolumeSnapshotContentName field must reference
+                  VolumeSnapshot object (hereinafter referred to as the referent) to which this VolumeSnapshotContent is bound.
+                  `VolumeSnapshot.Spec.VolumeSnapshotContentName` field must reference
                   this VolumeSnapshotContent name for the bidirectional binding to be valid.
                   For a pre-existing VolumeSnapshotContent object, name and namespace of the
                   VolumeSnapshot object **must be provided** for binding.
@@ -270,7 +270,7 @@ spec:
                   For a pre-existing snapshot, filled with the `size_bytes`
                   value returned from the CSI `ListSnapshots` gRPC call if the driver supports it.
                   When restoring a volume from this snapshot, the volume size **must not**
-                  be smaller than the restoreSize if specified, otherwise the restoration will fail.
+                  be smaller than the `restoreSize` if specified, otherwise the restoration will fail.
                   If not specified, the size is unknown.
                 format: int64
                 minimum: 0
@@ -401,8 +401,8 @@ spec:
                 type: string
               volumeSnapshotRef:
                 description: |-
-                  VolumeSnapshot object to which this VolumeSnapshotContent is bound.
-                  VolumeSnapshot.Spec.VolumeSnapshotContentName field must reference
+                  VolumeSnapshot object (hereinafter referred to as the referent) to which this VolumeSnapshotContent is bound.
+                  `VolumeSnapshot.Spec.VolumeSnapshotContentName` field must reference
                   this VolumeSnapshotContent name for the bidirectional binding to be valid.
                   For a pre-existing VolumeSnapshotContent object, name and namespace of the
                   VolumeSnapshot object **must be provided** for binding.
@@ -509,7 +509,7 @@ spec:
                   For a pre-existing snapshot, filled with the `size_bytes`
                   value returned from the CSI `ListSnapshots` gRPC call if the driver supports it.
                   When restoring a volume from this snapshot, the volume size **must not**
-                  be smaller than the restoreSize if specified, otherwise the restoration will fail.
+                  be smaller than the `restoreSize` if specified, otherwise the restoration will fail.
                   If not specified, the size is unknown.
                 format: int64
                 minimum: 0

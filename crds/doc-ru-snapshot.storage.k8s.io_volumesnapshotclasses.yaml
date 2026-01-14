@@ -37,7 +37,7 @@ spec:
             additionalProperties:
             description: |-
               Карта ключ-значение с параметрами, специфичными для драйвера хранения, используемыми при создании снапшотов.
-              Параметры прозрачны для Kubernetes.
+              Kubernetes не интерпретирует эти параметры.
   - name: v1beta1
     additionalPrinterColumns:
     - description: Управляет удалением VolumeSnapshotContent и его физического снапшота при удалении связанного VolumeSnapshot.
@@ -75,4 +75,4 @@ spec:
             additionalProperties:
             description: |-
               Карта ключ-значение с параметрами, специфичными для драйвера хранения, используемыми при создании снапшотов.
-              Параметры прозрачны для Kubernetes.
+             Kubernetes не интерпретирует эти параметры.
