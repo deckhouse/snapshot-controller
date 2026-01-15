@@ -7,7 +7,9 @@ subsystems:
 namespace: d8-snapshot-controller
 descriptions:
   en: |
-    This module enables snapshot support for compatible CSI-drivers in the Kubernetes cluster.
+    Enables snapshot support for compatible CSI-drivers in the cluster.
+  ru: |
+    Включает поддержку снапшотов для совместимых CSI-драйверов в кластере.
 requirements:
   deckhouse: ">= 1.67"
 accessibility:

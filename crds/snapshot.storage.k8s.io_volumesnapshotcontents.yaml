@@ -141,7 +141,6 @@ spec:
                   Mode of the volume whose snapshot is taken. Can be either `Filesystem` or `Block`.
                   If not specified, the source volume's mode is unknown.
                   Immutable.
-                  This field is an alpha field.
                 type: string
                 x-kubernetes-validations:
                 - message: sourceVolumeMode is immutable
