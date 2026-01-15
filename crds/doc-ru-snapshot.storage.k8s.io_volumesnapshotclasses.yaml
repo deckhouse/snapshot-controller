@@ -2,11 +2,11 @@ spec:
   versions:
   - name: v1
     additionalPrinterColumns:
-    - description: Управляет удалением VolumeSnapshotContent и его физического снапшота при удалении связанного VolumeSnapshot.
+    - description: Управляет удалением VolumeSnapshotContent и его физического снимка при удалении связанного VolumeSnapshot.
     schema:
       openAPIV3Schema:
         description: |-
-          VolumeSnapshotClass определяет параметры для создания снапшотов томов, используемые
+          VolumeSnapshotClass определяет параметры для создания снимков томов, используемые
           нижележащей системой хранения. Для использования укажите имя VolumeSnapshotClass
           в объекте VolumeSnapshot.
           Non-namespaced ресурс.
@@ -18,12 +18,12 @@ spec:
               Подробнее: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
           deletionPolicy:
             description: |-
-              Управляет поведением при удалении VolumeSnapshotContent и его физического снапшота
+              Управляет поведением при удалении VolumeSnapshotContent и его физического снимка
               при удалении связанного VolumeSnapshot.
               Поддерживаемые значения:
 
-              - `Retain` — VolumeSnapshotContent и его физический снапшот в нижележащей системе хранения сохраняются.
-              - `Delete` — VolumeSnapshotContent и его физический снапшот в нижележащей системе хранения удаляются.
+              - `Retain` — VolumeSnapshotContent и его физический снимок в нижележащей системе хранения сохраняются.
+              - `Delete` — VolumeSnapshotContent и его физический снимок в нижележащей системе хранения удаляются.
           driver:
             description: |-
               Имя драйвера хранения, который обрабатывает этот VolumeSnapshotClass.
@@ -36,15 +36,15 @@ spec:
           parameters:
             additionalProperties:
             description: |-
-              Карта ключ-значение с параметрами, специфичными для драйвера хранения, используемыми при создании снапшотов.
+              Карта ключ-значение с параметрами, специфичными для драйвера хранения, используемыми при создании снимков.
               Kubernetes не интерпретирует эти параметры.
   - name: v1beta1
     additionalPrinterColumns:
-    - description: Управляет удалением VolumeSnapshotContent и его физического снапшота при удалении связанного VolumeSnapshot.
+    - description: Управляет удалением VolumeSnapshotContent и его физического снимка при удалении связанного VolumeSnapshot.
     schema:
       openAPIV3Schema:
         description: |-
-          VolumeSnapshotClass определяет параметры для создания снапшотов томов, используемые
+          VolumeSnapshotClass определяет параметры для создания снимков томов, используемые
           нижележащей системой хранения. Для использования укажите имя VolumeSnapshotClass
           в объекте VolumeSnapshot.
           Non-namespaced ресурс.
@@ -56,12 +56,12 @@ spec:
               Подробнее: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
           deletionPolicy:
             description: |-
-              Управляет поведением при удалении VolumeSnapshotContent и его физического снапшота
+              Управляет поведением при удалении VolumeSnapshotContent и его физического снимка
               при удалении связанного VolumeSnapshot.
               Поддерживаемые значения:
 
-              - `Retain` —  VolumeSnapshotContent и его физический снапшот в нижележащей системе хранения сохраняются.
-              - `Delete` —  VolumeSnapshotContent и его физический снапшот в нижележащей системе хранения удаляются.
+              - `Retain` —  VolumeSnapshotContent и его физический снимок в нижележащей системе хранения сохраняются.
+              - `Delete` —  VolumeSnapshotContent и его физический снимок в нижележащей системе хранения удаляются.
           driver:
             description: |-
               Имя драйвера хранения, который обрабатывает этот VolumeSnapshotClass.
@@ -74,5 +74,5 @@ spec:
           parameters:
             additionalProperties:
             description: |-
-              Карта ключ-значение с параметрами, специфичными для драйвера хранения, используемыми при создании снапшотов.
+              Карта ключ-значение с параметрами, специфичными для драйвера хранения, используемыми при создании снимков.
               Kubernetes не интерпретирует эти параметры.

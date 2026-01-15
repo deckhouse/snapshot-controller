@@ -2,9 +2,9 @@
 title: "Модуль snapshot-controller"
 ---
 
-Модуль `snapshot-controller` включает поддержку снапшотов для совместимых CSI-драйверов в кластере Kubernetes.
+Модуль `snapshot-controller` включает поддержку снимков для совместимых CSI-драйверов в кластере Kubernetes.
 
-Список CSI-драйверов в Deckhouse Kubernetes Platform, поддерживающих работу со снапшотами:
+Список CSI-драйверов в Deckhouse Kubernetes Platform, поддерживающих работу со снимками:
 
 - [cloud-provider-openstack](/modules/cloud-provider-openstack/)
 - [cloud-provider-vsphere](/modules/cloud-provider-vsphere/)

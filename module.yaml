@@ -9,7 +9,7 @@ descriptions:
   en: |
     Enables snapshot support for compatible CSI-drivers in the cluster.
   ru: |
-    Включает поддержку снапшотов для совместимых CSI-драйверов в кластере.
+    Включает поддержку снимков для совместимых CSI-драйверов в кластере.
 requirements:
   deckhouse: ">= 1.67"
 accessibility:

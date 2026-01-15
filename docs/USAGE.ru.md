@@ -2,16 +2,16 @@
 title: "Модуль snapshot-controller: примеры конфигурации"
 ---
 
-## Использование снапшотов
+## Использование снимков
 
-Для использования снапшотов укажите [VolumeSnapshotClass](/modules/snapshot-controller/cr.html#volumesnapshotclass).
+Для использования снимков укажите [VolumeSnapshotClass](/modules/snapshot-controller/cr.html#volumesnapshotclass).
 Чтобы получить список доступных [VolumeSnapshotClass](/modules/snapshot-controller/cr.html#volumesnapshotclass) в кластере, выполните:
 
 ```bash
 d8 k get volumesnapshotclasses.snapshot.storage.k8s.io
 ```
 
-Используйте [VolumeSnapshotClass](/modules/snapshot-controller/cr.html#volumesnapshotclass) для создания снапшота из существующего PersistentVolumeClaim (PVC):
+Используйте [VolumeSnapshotClass](/modules/snapshot-controller/cr.html#volumesnapshotclass) для создания снимка из существующего PersistentVolumeClaim (PVC):
 
 ```yaml
 apiVersion: snapshot.storage.k8s.io/v1
@@ -24,7 +24,7 @@ spec:
     persistentVolumeClaimName: my-first-volume
 ```
 
-Спустя небольшой промежуток времени проверьте, что снапшот готов:
+Спустя небольшой промежуток времени проверьте, что снимок готов:
 
 ```bash
 d8 k describe volumesnapshots.snapshot.storage.k8s.io my-first-snapshot
@@ -45,7 +45,7 @@ Status:
   Restore Size:                        500Mi
 ```
 
-Восстановите содержимое снапшота, создав новый PVC и указав снапшот в качестве источника:
+Восстановите содержимое снимка, создав новый PVC и указав снимок в качестве источника:
 
 ```yaml
 apiVersion: v1
@@ -67,7 +67,7 @@ spec:
 
 ## Клонирование CSI-томов
 
-Также можно клонировать Persistent Volume (PV) на основе концепции снапшотов, а именно существующие PVC.
+Также можно клонировать Persistent Volume (PV) на основе концепции снимков, а именно существующие PVC.
 Обратите внимание, что спецификация CSI имеет ограничения при клонировании PVC в неймспейсах и StorageClass, отличных от исходного PVC.
 См. [документацию Kubernetes](https://kubernetes.io/docs/concepts/storage/volume-pvc-datasource/) для подробностей.
 
