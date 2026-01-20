@@ -2,9 +2,9 @@
 title: "The snapshot-controller module"
 ---
 
-This module enables snapshot support for compatible CSI-drivers in the Kubernetes cluster.
+The `snapshot-controller` module enables snapshot support for compatible CSI-drivers in the Kubernetes cluster.
 
-Deckhouse Kubernetes Platform CSI-drivers that support snapshots:
+List of CSI-drivers in Deckhouse Kubernetes Platform that support snapshots:
 
 - [cloud-provider-openstack](/modules/cloud-provider-openstack/)
 - [cloud-provider-vsphere](/modules/cloud-provider-vsphere/)
