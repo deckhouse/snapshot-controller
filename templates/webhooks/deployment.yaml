@@ -17,7 +17,7 @@ spec:
     kind: Deployment
     name: webhooks
   updatePolicy:
-    updateMode: "Auto"
+    updateMode: "Initial"
   resourcePolicy:
     containerPolicies:
       - containerName: webhooks
