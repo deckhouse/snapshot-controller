@@ -10,7 +10,7 @@ secrets:
 
 shell:
   install:
-    - git clone --depth 1 --branch {{ $.Versions.SNAPSHOT_CONTROLLER }} $(cat /run/secrets/SOURCE_REPO)/kubernetes-csi/external-snapshotter.git /src/snapshot-controller
+    - git clone --depth 1 --branch v{{ include "get_oss_version_by_id" (list "external-snapshotter" .) }} $(cat /run/secrets/SOURCE_REPO)/kubernetes-csi/external-snapshotter.git /src/snapshot-controller
     - cd /src/snapshot-controller
 #    - for patchfile in /patches/images/{{ $.ImageName }}/patches/*.patch; do echo "Apply ${patchfile} ... "; git apply ${patchfile} --verbose; done
 #    - rm -rf /src/images/{{ $.ImageName }}/patches
