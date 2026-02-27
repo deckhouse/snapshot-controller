@@ -39,7 +39,7 @@ Spec:
     Persistent Volume Claim Name:  my-first-snapshot
   Volume Snapshot Class Name:      sds-replicated-volume
 Status:
-  Bound Volume Snapshot Content Name:  snapcontent-b6072ab7-6ddf-482b-a4e3-693088136d2c
+  Bound Volume Snapshot Content Name:  snapcontent-014df517-39d1-4453-b7b3-9930c563627c
   Creation Time:                       2020-06-04T13:02:28Z
   Ready To Use:                        true
   Restore Size:                        500Mi
