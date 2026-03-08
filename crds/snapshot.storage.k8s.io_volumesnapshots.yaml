@@ -92,7 +92,7 @@ spec:
                   source specifies where a snapshot will be created from.
                   May be empty for restore intent (backup controller sets volumeSnapshotContentName after restore).
                   Otherwise exactly one of persistentVolumeClaimName or volumeSnapshotContentName must be set.
-                  This field is immutable after creation (except one-shot set of volumeSnapshotContentName from empty).
+                  Immutable after creation (except one-shot set of volumeSnapshotContentName from empty).
                   Required.
                 properties:
                   persistentVolumeClaimName:
@@ -299,8 +299,10 @@ spec:
             properties:
               source:
                 description: |-
-                  Specifies where a snapshot will be created from.
-                  Immutable after creation.
+                  source specifies where a snapshot will be created from.
+                  May be empty for restore intent (backup controller sets volumeSnapshotContentName after restore).
+                  Otherwise exactly one of persistentVolumeClaimName or volumeSnapshotContentName must be set.
+                  Immutable after creation (except one-shot set of volumeSnapshotContentName from empty).
                 properties:
                   persistentVolumeClaimName:
                     description: |-
@@ -315,7 +317,7 @@ spec:
                       Name of a pre-existing VolumeSnapshotContent object representing
                       an existing volume snapshot.
                       Specified if the snapshot already exists and only needs a representation in Kubernetes.
-                      Immutable.
+                      For restore intent, backup controller may set this once from empty after successful restore (one-shot update).
                     type: string
                 type: object
               volumeSnapshotClassName:
