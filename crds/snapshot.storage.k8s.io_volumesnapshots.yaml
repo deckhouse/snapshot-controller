@@ -116,7 +116,7 @@ spec:
                     x-kubernetes-validations:
                     # Immutable except one-shot set from empty (restore controller sets after successful restore)
                     - message: volumeSnapshotContentName is immutable once set
-                      rule: oldSelf == null || self == oldSelf
+                      rule: size(oldSelf) == 0 || self == oldSelf
                 type: object
                 x-kubernetes-validations:
                 - message: persistentVolumeClaimName is required once set
