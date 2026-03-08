@@ -1,2 +1,5 @@
 Changes:
   - Updated snapshot-controller to version 8.4.0
+  - Updated module-sdk for CVE fix
+  - Changes in documentation
+  

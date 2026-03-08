@@ -2,16 +2,16 @@
 title: "The snapshot-controller module: configuration examples"
 ---
 
-### Using snapshots
+## Using snapshots
 
-To use snapshots, specify a `VolumeSnapshotClass`.
-To get a list of available VolumeSnapshotClasses in your cluster, run:
+Specify a [VolumeSnapshotClass](/modules/snapshot-controller/cr.html#volumesnapshotclass) to use snapshots.
+To get a list of available [VolumeSnapshotClass](/modules/snapshot-controller/cr.html#volumesnapshotclass) in your cluster, run:
 
-```shell
-kubectl get volumesnapshotclasses.snapshot.storage.k8s.io
+```bash
+d8 k get volumesnapshotclasses.snapshot.storage.k8s.io
 ```
 
-You can then use VolumeSnapshotClass to create a snapshot from an existing PVC:
+Use [VolumeSnapshotClass](/modules/snapshot-controller/cr.html#volumesnapshotclass) to create a snapshot from an existing PersistentVolumeClaim (PVC):
 
 ```yaml
 apiVersion: snapshot.storage.k8s.io/v1
@@ -24,23 +24,28 @@ spec:
     persistentVolumeClaimName: my-first-volume
 ```
 
-After a short wait, the snapshot will be ready:
+After a short wait, check that the snapshot is ready:
 
-```yaml
-$ kubectl describe volumesnapshots.snapshot.storage.k8s.io my-first-snapshot
+```bash
+d8 k describe volumesnapshots.snapshot.storage.k8s.io my-first-snapshot
+```
+
+Example output:
+
+```console
 ...
 Spec:
   Source:
     Persistent Volume Claim Name:  my-first-snapshot
   Volume Snapshot Class Name:      sds-replicated-volume
 Status:
-  Bound Volume Snapshot Content Name:  snapcontent-b6072ab7-6ddf-482b-a4e3-693088136d2c
+  Bound Volume Snapshot Content Name:  snapcontent-014df517-39d1-4453-b7b3-9930c563627c
   Creation Time:                       2020-06-04T13:02:28Z
   Ready To Use:                        true
   Restore Size:                        500Mi
 ```
 
-You can restore the content of this snaphost by creating a new PVC with the snapshot as source:
+Restore the content of this snapshot by creating a new PVC with the snapshot as source:
 
 ```yaml
 apiVersion: v1
@@ -60,13 +65,13 @@ spec:
       storage: 500Mi
 ```
 
-### CSI Volume Cloning
+## CSI Volume Cloning
 
-Based on the concept of snapshots, you can also perform cloning of persistent volumes - or, more precisely, existing persistent volume claims (PVC).
-However, the CSI specification mentions some restrictions regarding cloning PVCs in different namespace and storage classes than the original PVC.
-(see [Kubernetes documentation](https://kubernetes.io/docs/concepts/storage/volume-pvc-datasource/) for details).
+You can also clone Persistent Volume (PV) using the snapshot concept (clone existing PVC).
+Note that the CSI specification has restrictions when cloning PVCs in different namespaces and StorageClass than the original PVC.
+See [Kubernetes documentation](https://kubernetes.io/docs/concepts/storage/volume-pvc-datasource/) for details.
 
-To clone a volume create a new PVC and define the origin PVC in the dataSource:
+To clone a volume, create a new PVC and specify the origin PVC in the `dataSource`:
 
 ```yaml
 apiVersion: v1

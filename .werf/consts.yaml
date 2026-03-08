@@ -1,7 +1,4 @@
 # Edition module settings, default ce
 {{- $_ := set . "MODULE_EDITION" (env "MODULE_EDITION" "ce") }}
 
-# component versions
-{{- $versions := dict }}
-{{- $_ := set $versions "SNAPSHOT_CONTROLLER" "v8.4.0" }}
-{{- $_ := set . "VERSIONS" $versions }}
+# Component versions are in oss.yaml; images use get_oss_version_by_id (see .werf/defines/oss-yaml.tmpl).

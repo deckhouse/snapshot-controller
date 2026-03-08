@@ -17,7 +17,7 @@ spec:
     kind: Deployment
     name: snapshot-controller
   updatePolicy:
-    updateMode: "Auto"
+    updateMode: "Initial"
   resourcePolicy:
     containerPolicies:
     - containerName: "snapshot-controller"
