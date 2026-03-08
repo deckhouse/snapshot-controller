@@ -93,7 +93,9 @@ spec:
               source:
                 description: |-
                   source specifies where a snapshot will be created from.
-                  This field is immutable after creation.
+                  May be empty for restore intent (backup controller sets volumeSnapshotContentName after restore).
+                  Otherwise exactly one of persistentVolumeClaimName or volumeSnapshotContentName must be set.
+                  This field is immutable after creation (except one-shot set of volumeSnapshotContentName from empty).
                   Required.
                 properties:
                   persistentVolumeClaimName:
@@ -114,20 +116,22 @@ spec:
                       volumeSnapshotContentName specifies the name of a pre-existing VolumeSnapshotContent
                       object representing an existing volume snapshot.
                       This field should be set if the snapshot already exists and only needs a representation in Kubernetes.
-                      This field is immutable.
+                      For restore intent, backup controller may set this once from empty after successful restore (one-shot update).
                     type: string
                     x-kubernetes-validations:
-                    - message: volumeSnapshotContentName is immutable
-                      rule: self == oldSelf
+                    # Immutable except one-shot set from empty (restore controller sets after successful restore)
+                    - message: volumeSnapshotContentName is immutable once set
+                      rule: oldSelf == null || self == oldSelf
                 type: object
                 x-kubernetes-validations:
                 - message: persistentVolumeClaimName is required once set
                   rule: '!has(oldSelf.persistentVolumeClaimName) || has(self.persistentVolumeClaimName)'
                 - message: volumeSnapshotContentName is required once set
                   rule: '!has(oldSelf.volumeSnapshotContentName) || has(self.volumeSnapshotContentName)'
-                - message: exactly one of volumeSnapshotContentName and persistentVolumeClaimName
-                    must be set
-                  rule: (has(self.volumeSnapshotContentName) && !has(self.persistentVolumeClaimName))
+                # Allow empty source (restore intent) or exactly one of volumeSnapshotContentName and persistentVolumeClaimName
+                - message: source must be empty (restore intent) or exactly one of volumeSnapshotContentName and persistentVolumeClaimName must be set
+                  rule: (!has(self.volumeSnapshotContentName) && !has(self.persistentVolumeClaimName))
+                    || (has(self.volumeSnapshotContentName) && !has(self.persistentVolumeClaimName))
                     || (!has(self.volumeSnapshotContentName) && has(self.persistentVolumeClaimName))
               volumeSnapshotClassName:
                 description: |-
