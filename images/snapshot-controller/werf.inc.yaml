@@ -4,6 +4,17 @@ image: {{ .ModuleNamePrefix }}{{ .ImageName }}-src-artifact
 fromImage: builder/src
 final: false
 
+git:
+  - add: {{ .ModuleDir }}
+    to: /src
+    includePaths:
+      - images/{{ $.ImageName }}
+    stageDependencies:
+      install:
+        - '**/*'
+    excludePaths:
+      - images/{{ $.ImageName }}/werf.yaml
+
 secrets:
 - id: SOURCE_REPO
   value: {{ .SOURCE_REPO }}
