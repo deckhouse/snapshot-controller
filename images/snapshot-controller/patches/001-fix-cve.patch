@@ -1,0 +1,1523 @@
+From 62a1298b9fd327b432086a6736068debd32400f5 Mon Sep 17 00:00:00 2001
+From: "v.oleynikov" <vasily.oleynikov@flant.com>
+Date: Fri, 27 Mar 2026 10:26:17 +0300
+Subject: [PATCH] Fix CVE
+
+---
+ go.mod                                        |  2 +-
+ go.sum                                        |  4 +-
+ .../grpc/balancer/balancer.go                 |  2 -
+ .../balancer/pickfirst/internal/internal.go   |  2 +
+ .../grpc/balancer/pickfirst/pickfirst.go      | 57 ++++++++++-
+ .../grpc/balancer/subconn.go                  | 14 ---
+ .../grpc/balancer_wrapper.go                  |  6 +-
+ vendor/google.golang.org/grpc/clientconn.go   | 20 ++--
+ .../google.golang.org/grpc/credentials/tls.go |  6 +-
+ .../grpc/encoding/encoding.go                 |  4 -
+ .../grpc/encoding/gzip/gzip.go                | 12 ---
+ .../grpc/experimental/stats/metrics.go        | 69 +++++++++++++-
+ vendor/google.golang.org/grpc/interceptor.go  | 12 ++-
+ .../grpc/internal/balancer/weight/weight.go   | 66 +++++++++++++
+ .../grpc/internal/envconfig/envconfig.go      | 22 +++++
+ .../grpc/internal/experimental.go             |  3 +
+ .../grpc/internal/internal.go                 | 25 ++---
+ .../internal/resolver/dns/dns_resolver.go     | 15 ++-
+ .../internal/stats/metrics_recorder_list.go   | 60 ++++++++++++
+ .../grpc/internal/transport/client_stream.go  | 10 +-
+ .../grpc/internal/transport/controlbuf.go     | 24 +----
+ .../grpc/internal/transport/http2_client.go   | 25 ++---
+ .../grpc/internal/transport/http2_server.go   | 94 +++++++++----------
+ .../grpc/internal/transport/transport.go      | 29 +++++-
+ .../google.golang.org/grpc/mem/buffer_pool.go |  2 +-
+ vendor/google.golang.org/grpc/mem/buffers.go  | 65 +++++++------
+ .../grpc/resolver/resolver.go                 |  1 +
+ vendor/google.golang.org/grpc/server.go       | 61 ++++++++----
+ vendor/google.golang.org/grpc/stream.go       | 19 +++-
+ vendor/google.golang.org/grpc/version.go      |  2 +-
+ vendor/modules.txt                            |  3 +-
+ 31 files changed, 524 insertions(+), 212 deletions(-)
+ create mode 100644 vendor/google.golang.org/grpc/internal/balancer/weight/weight.go
+
+diff --git a/go.mod b/go.mod
+index 09c223679..25b113a6c 100644
+--- a/go.mod
++++ b/go.mod
+@@ -15,7 +15,7 @@ require (
+ 	github.com/prometheus/client_golang v1.23.2
+ 	github.com/prometheus/client_model v0.6.2
+ 	github.com/prometheus/common v0.67.5
+-	google.golang.org/grpc v1.78.0
++	google.golang.org/grpc v1.79.3
+ 	google.golang.org/protobuf v1.36.11
+ 	k8s.io/api v0.35.0
+ 	k8s.io/apiextensions-apiserver v0.35.0
+diff --git a/go.sum b/go.sum
+index 56958f3b7..b0aaa8471 100644
+--- a/go.sum
++++ b/go.sum
+@@ -292,8 +292,8 @@ google.golang.org/genproto/googleapis/api v0.0.0-20260128011058-8636f8732409 h1:
+ google.golang.org/genproto/googleapis/api v0.0.0-20260128011058-8636f8732409/go.mod h1:fl8J1IvUjCilwZzQowmw2b7HQB2eAuYBabMXzWurF+I=
+ google.golang.org/genproto/googleapis/rpc v0.0.0-20260128011058-8636f8732409 h1:H86B94AW+VfJWDqFeEbBPhEtHzJwJfTbgE2lZa54ZAQ=
+ google.golang.org/genproto/googleapis/rpc v0.0.0-20260128011058-8636f8732409/go.mod h1:j9x/tPzZkyxcgEFkiKEEGxfvyumM01BEtsW8xzOahRQ=
+-google.golang.org/grpc v1.78.0 h1:K1XZG/yGDJnzMdd/uZHAkVqJE+xIDOcmdSFZkBUicNc=
+-google.golang.org/grpc v1.78.0/go.mod h1:I47qjTo4OKbMkjA/aOOwxDIiPSBofUtQUI5EfpWvW7U=
++google.golang.org/grpc v1.79.3 h1:sybAEdRIEtvcD68Gx7dmnwjZKlyfuc61Dyo9pGXXkKE=
++google.golang.org/grpc v1.79.3/go.mod h1:KmT0Kjez+0dde/v2j9vzwoAScgEPx/Bw1CYChhHLrHQ=
+ google.golang.org/protobuf v1.36.11 h1:fV6ZwhNocDyBLK0dj+fg8ektcVegBBuEolpbTQyBNVE=
+ google.golang.org/protobuf v1.36.11/go.mod h1:HTf+CrKn2C3g5S8VImy6tdcUvCska2kB7j23XfzDpco=
+ gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=
+diff --git a/vendor/google.golang.org/grpc/balancer/balancer.go b/vendor/google.golang.org/grpc/balancer/balancer.go
+index b1264017d..d08b7ad63 100644
+--- a/vendor/google.golang.org/grpc/balancer/balancer.go
++++ b/vendor/google.golang.org/grpc/balancer/balancer.go
+@@ -75,8 +75,6 @@ func unregisterForTesting(name string) {
+ 
+ func init() {
+ 	internal.BalancerUnregister = unregisterForTesting
+-	internal.ConnectedAddress = connectedAddress
+-	internal.SetConnectedAddress = setConnectedAddress
+ }
+ 
+ // Get returns the resolver builder registered with the given name.
+diff --git a/vendor/google.golang.org/grpc/balancer/pickfirst/internal/internal.go b/vendor/google.golang.org/grpc/balancer/pickfirst/internal/internal.go
+index 7d66cb491..cc902a4de 100644
+--- a/vendor/google.golang.org/grpc/balancer/pickfirst/internal/internal.go
++++ b/vendor/google.golang.org/grpc/balancer/pickfirst/internal/internal.go
+@@ -26,6 +26,8 @@ import (
+ var (
+ 	// RandShuffle pseudo-randomizes the order of addresses.
+ 	RandShuffle = rand.Shuffle
++	// RandFloat64 returns, as a float64, a pseudo-random number in [0.0,1.0).
++	RandFloat64 = rand.Float64
+ 	// TimeAfterFunc allows mocking the timer for testing connection delay
+ 	// related functionality.
+ 	TimeAfterFunc = func(d time.Duration, f func()) func() {
+diff --git a/vendor/google.golang.org/grpc/balancer/pickfirst/pickfirst.go b/vendor/google.golang.org/grpc/balancer/pickfirst/pickfirst.go
+index b4bc3a2bf..dccd9f0bf 100644
+--- a/vendor/google.golang.org/grpc/balancer/pickfirst/pickfirst.go
++++ b/vendor/google.golang.org/grpc/balancer/pickfirst/pickfirst.go
+@@ -21,11 +21,14 @@
+ package pickfirst
+ 
+ import (
++	"cmp"
+ 	"encoding/json"
+ 	"errors"
+ 	"fmt"
++	"math"
+ 	"net"
+ 	"net/netip"
++	"slices"
+ 	"sync"
+ 	"time"
+ 
+@@ -34,6 +37,8 @@ import (
+ 	"google.golang.org/grpc/connectivity"
+ 	expstats "google.golang.org/grpc/experimental/stats"
+ 	"google.golang.org/grpc/grpclog"
++	"google.golang.org/grpc/internal/balancer/weight"
++	"google.golang.org/grpc/internal/envconfig"
+ 	internalgrpclog "google.golang.org/grpc/internal/grpclog"
+ 	"google.golang.org/grpc/internal/pretty"
+ 	"google.golang.org/grpc/resolver"
+@@ -258,8 +263,42 @@ func (b *pickfirstBalancer) UpdateClientConnState(state balancer.ClientConnState
+ 		// will change the order of endpoints but not touch the order of the
+ 		// addresses within each endpoint. - A61
+ 		if cfg.ShuffleAddressList {
+-			endpoints = append([]resolver.Endpoint{}, endpoints...)
+-			internal.RandShuffle(len(endpoints), func(i, j int) { endpoints[i], endpoints[j] = endpoints[j], endpoints[i] })
++			if envconfig.PickFirstWeightedShuffling {
++				type weightedEndpoint struct {
++					endpoint resolver.Endpoint
++					weight   float64
++				}
++
++				// For each endpoint, compute a key as described in A113 and
++				// https://utopia.duth.gr/~pefraimi/research/data/2007EncOfAlg.pdf:
++				var weightedEndpoints []weightedEndpoint
++				for _, endpoint := range endpoints {
++					u := internal.RandFloat64() // Random number in [0.0, 1.0)
++					weight := weightAttribute(endpoint)
++					weightedEndpoints = append(weightedEndpoints, weightedEndpoint{
++						endpoint: endpoint,
++						weight:   math.Pow(u, 1.0/float64(weight)),
++					})
++				}
++				// Sort endpoints by key in descending order and reconstruct the
++				// endpoints slice.
++				slices.SortFunc(weightedEndpoints, func(a, b weightedEndpoint) int {
++					return cmp.Compare(b.weight, a.weight)
++				})
++
++				// Here, and in the "else" block below, we clone the endpoints
++				// slice to avoid mutating the resolver state. Doing the latter
++				// would lead to data races if the caller is accessing the same
++				// slice concurrently.
++				sortedEndpoints := make([]resolver.Endpoint, len(endpoints))
++				for i, we := range weightedEndpoints {
++					sortedEndpoints[i] = we.endpoint
++				}
++				endpoints = sortedEndpoints
++			} else {
++				endpoints = slices.Clone(endpoints)
++				internal.RandShuffle(len(endpoints), func(i, j int) { endpoints[i], endpoints[j] = endpoints[j], endpoints[i] })
++			}
+ 		}
+ 
+ 		// "Flatten the list by concatenating the ordered list of addresses for
+@@ -906,3 +945,17 @@ func equalAddressIgnoringBalAttributes(a, b *resolver.Address) bool {
+ 	return a.Addr == b.Addr && a.ServerName == b.ServerName &&
+ 		a.Attributes.Equal(b.Attributes)
+ }
++
++// weightAttribute is a convenience function which returns the value of the
++// weight endpoint Attribute.
++//
++// When used in the xDS context, the weight attribute is guaranteed to be
++// non-zero. But, when used in a non-xDS context, the weight attribute could be
++// unset. A Default of 1 is used in the latter case.
++func weightAttribute(e resolver.Endpoint) uint32 {
++	w := weight.FromEndpoint(e).Weight
++	if w == 0 {
++		return 1
++	}
++	return w
++}
+diff --git a/vendor/google.golang.org/grpc/balancer/subconn.go b/vendor/google.golang.org/grpc/balancer/subconn.go
+index 9ee44d4af..c1ca7c92e 100644
+--- a/vendor/google.golang.org/grpc/balancer/subconn.go
++++ b/vendor/google.golang.org/grpc/balancer/subconn.go
+@@ -111,20 +111,6 @@ type SubConnState struct {
+ 	// ConnectionError is set if the ConnectivityState is TransientFailure,
+ 	// describing the reason the SubConn failed.  Otherwise, it is nil.
+ 	ConnectionError error
+-	// connectedAddr contains the connected address when ConnectivityState is
+-	// Ready. Otherwise, it is indeterminate.
+-	connectedAddress resolver.Address
+-}
+-
+-// connectedAddress returns the connected address for a SubConnState. The
+-// address is only valid if the state is READY.
+-func connectedAddress(scs SubConnState) resolver.Address {
+-	return scs.connectedAddress
+-}
+-
+-// setConnectedAddress sets the connected address for a SubConnState.
+-func setConnectedAddress(scs *SubConnState, addr resolver.Address) {
+-	scs.connectedAddress = addr
+ }
+ 
+ // A Producer is a type shared among potentially many consumers.  It is
+diff --git a/vendor/google.golang.org/grpc/balancer_wrapper.go b/vendor/google.golang.org/grpc/balancer_wrapper.go
+index 2c760e623..a1e56a389 100644
+--- a/vendor/google.golang.org/grpc/balancer_wrapper.go
++++ b/vendor/google.golang.org/grpc/balancer_wrapper.go
+@@ -36,7 +36,6 @@ import (
+ )
+ 
+ var (
+-	setConnectedAddress = internal.SetConnectedAddress.(func(*balancer.SubConnState, resolver.Address))
+ 	// noOpRegisterHealthListenerFn is used when client side health checking is
+ 	// disabled. It sends a single READY update on the registered listener.
+ 	noOpRegisterHealthListenerFn = func(_ context.Context, listener func(balancer.SubConnState)) func() {
+@@ -305,7 +304,7 @@ func newHealthData(s connectivity.State) *healthData {
+ 
+ // updateState is invoked by grpc to push a subConn state update to the
+ // underlying balancer.
+-func (acbw *acBalancerWrapper) updateState(s connectivity.State, curAddr resolver.Address, err error) {
++func (acbw *acBalancerWrapper) updateState(s connectivity.State, err error) {
+ 	acbw.ccb.serializer.TrySchedule(func(ctx context.Context) {
+ 		if ctx.Err() != nil || acbw.ccb.balancer == nil {
+ 			return
+@@ -317,9 +316,6 @@ func (acbw *acBalancerWrapper) updateState(s connectivity.State, curAddr resolve
+ 		// opts.StateListener is set, so this cannot ever be nil.
+ 		// TODO: delete this comment when UpdateSubConnState is removed.
+ 		scs := balancer.SubConnState{ConnectivityState: s, ConnectionError: err}
+-		if s == connectivity.Ready {
+-			setConnectedAddress(&scs, curAddr)
+-		}
+ 		// Invalidate the health listener by updating the healthData.
+ 		acbw.healthMu.Lock()
+ 		// A race may occur if a health listener is registered soon after the
+diff --git a/vendor/google.golang.org/grpc/clientconn.go b/vendor/google.golang.org/grpc/clientconn.go
+index b767d3e33..5dec2dacc 100644
+--- a/vendor/google.golang.org/grpc/clientconn.go
++++ b/vendor/google.golang.org/grpc/clientconn.go
+@@ -977,25 +977,24 @@ func (cc *ClientConn) incrCallsFailed() {
+ // connect starts creating a transport.
+ // It does nothing if the ac is not IDLE.
+ // TODO(bar) Move this to the addrConn section.
+-func (ac *addrConn) connect() error {
++func (ac *addrConn) connect() {
+ 	ac.mu.Lock()
+ 	if ac.state == connectivity.Shutdown {
+ 		if logger.V(2) {
+ 			logger.Infof("connect called on shutdown addrConn; ignoring.")
+ 		}
+ 		ac.mu.Unlock()
+-		return errConnClosing
++		return
+ 	}
+ 	if ac.state != connectivity.Idle {
+ 		if logger.V(2) {
+ 			logger.Infof("connect called on addrConn in non-idle state (%v); ignoring.", ac.state)
+ 		}
+ 		ac.mu.Unlock()
+-		return nil
++		return
+ 	}
+ 
+ 	ac.resetTransportAndUnlock()
+-	return nil
+ }
+ 
+ // equalAddressIgnoringBalAttributes returns true is a and b are considered equal.
+@@ -1297,7 +1296,7 @@ func (ac *addrConn) updateConnectivityState(s connectivity.State, lastErr error)
+ 	} else {
+ 		channelz.Infof(logger, ac.channelz, "Subchannel Connectivity change to %v, last error: %s", s, lastErr)
+ 	}
+-	ac.acbw.updateState(s, ac.curAddr, lastErr)
++	ac.acbw.updateState(s, lastErr)
+ }
+ 
+ // adjustParams updates parameters used to create transports upon
+@@ -1528,25 +1527,26 @@ func (ac *addrConn) createTransport(ctx context.Context, addr resolver.Address,
+ 	}
+ 
+ 	ac.mu.Lock()
+-	defer ac.mu.Unlock()
+ 	if ctx.Err() != nil {
+ 		// This can happen if the subConn was removed while in `Connecting`
+ 		// state. tearDown() would have set the state to `Shutdown`, but
+ 		// would not have closed the transport since ac.transport would not
+ 		// have been set at that point.
+-		//
+-		// We run this in a goroutine because newTr.Close() calls onClose()
++
++		// We unlock ac.mu because newTr.Close() calls onClose()
+ 		// inline, which requires locking ac.mu.
+-		//
++		ac.mu.Unlock()
++
+ 		// The error we pass to Close() is immaterial since there are no open
+ 		// streams at this point, so no trailers with error details will be sent
+ 		// out. We just need to pass a non-nil error.
+ 		//
+ 		// This can also happen when updateAddrs is called during a connection
+ 		// attempt.
+-		go newTr.Close(transport.ErrConnClosing)
++		newTr.Close(transport.ErrConnClosing)
+ 		return nil
+ 	}
++	defer ac.mu.Unlock()
+ 	if hctx.Err() != nil {
+ 		// onClose was already called for this connection, but the connection
+ 		// was successfully established first.  Consider it a success and set
+diff --git a/vendor/google.golang.org/grpc/credentials/tls.go b/vendor/google.golang.org/grpc/credentials/tls.go
+index 8277be7d6..0bcd16dbb 100644
+--- a/vendor/google.golang.org/grpc/credentials/tls.go
++++ b/vendor/google.golang.org/grpc/credentials/tls.go
+@@ -56,9 +56,13 @@ func (t TLSInfo) AuthType() string {
+ // non-nil error if the validation fails.
+ func (t TLSInfo) ValidateAuthority(authority string) error {
+ 	var errs []error
++	host, _, err := net.SplitHostPort(authority)
++	if err != nil {
++		host = authority
++	}
+ 	for _, cert := range t.State.PeerCertificates {
+ 		var err error
+-		if err = cert.VerifyHostname(authority); err == nil {
++		if err = cert.VerifyHostname(host); err == nil {
+ 			return nil
+ 		}
+ 		errs = append(errs, err)
+diff --git a/vendor/google.golang.org/grpc/encoding/encoding.go b/vendor/google.golang.org/grpc/encoding/encoding.go
+index dadd21e40..296f38c3a 100644
+--- a/vendor/google.golang.org/grpc/encoding/encoding.go
++++ b/vendor/google.golang.org/grpc/encoding/encoding.go
+@@ -58,10 +58,6 @@ func init() {
+ 
+ // Compressor is used for compressing and decompressing when sending or
+ // receiving messages.
+-//
+-// If a Compressor implements `DecompressedSize(compressedBytes []byte) int`,
+-// gRPC will invoke it to determine the size of the buffer allocated for the
+-// result of decompression.  A return value of -1 indicates unknown size.
+ type Compressor interface {
+ 	// Compress writes the data written to wc to w after compressing it.  If an
+ 	// error occurs while initializing the compressor, that error is returned
+diff --git a/vendor/google.golang.org/grpc/encoding/gzip/gzip.go b/vendor/google.golang.org/grpc/encoding/gzip/gzip.go
+index 6306e8bb0..153e4dbfb 100644
+--- a/vendor/google.golang.org/grpc/encoding/gzip/gzip.go
++++ b/vendor/google.golang.org/grpc/encoding/gzip/gzip.go
+@@ -27,7 +27,6 @@ package gzip
+ 
+ import (
+ 	"compress/gzip"
+-	"encoding/binary"
+ 	"fmt"
+ 	"io"
+ 	"sync"
+@@ -111,17 +110,6 @@ func (z *reader) Read(p []byte) (n int, err error) {
+ 	return n, err
+ }
+ 
+-// RFC1952 specifies that the last four bytes "contains the size of
+-// the original (uncompressed) input data modulo 2^32."
+-// gRPC has a max message size of 2GB so we don't need to worry about wraparound.
+-func (c *compressor) DecompressedSize(buf []byte) int {
+-	last := len(buf)
+-	if last < 4 {
+-		return -1
+-	}
+-	return int(binary.LittleEndian.Uint32(buf[last-4 : last]))
+-}
+-
+ func (c *compressor) Name() string {
+ 	return Name
+ }
+diff --git a/vendor/google.golang.org/grpc/experimental/stats/metrics.go b/vendor/google.golang.org/grpc/experimental/stats/metrics.go
+index d7d404cbe..88742724a 100644
+--- a/vendor/google.golang.org/grpc/experimental/stats/metrics.go
++++ b/vendor/google.golang.org/grpc/experimental/stats/metrics.go
+@@ -19,9 +19,13 @@
+ // Package stats contains experimental metrics/stats API's.
+ package stats
+ 
+-import "google.golang.org/grpc/stats"
++import (
++	"google.golang.org/grpc/internal"
++	"google.golang.org/grpc/stats"
++)
+ 
+ // MetricsRecorder records on metrics derived from metric registry.
++// Implementors must embed UnimplementedMetricsRecorder.
+ type MetricsRecorder interface {
+ 	// RecordInt64Count records the measurement alongside labels on the int
+ 	// count associated with the provided handle.
+@@ -41,6 +45,39 @@ type MetricsRecorder interface {
+ 	// RecordInt64UpDownCounter records the measurement alongside labels on the int
+ 	// count associated with the provided handle.
+ 	RecordInt64UpDownCount(handle *Int64UpDownCountHandle, incr int64, labels ...string)
++	// RegisterAsyncReporter registers a reporter to produce metric values for
++	// only the listed descriptors. The returned function must be called when
++	// the metrics are no longer needed, which will remove the reporter. The
++	// returned method needs to be idempotent and concurrent safe.
++	RegisterAsyncReporter(reporter AsyncMetricReporter, descriptors ...AsyncMetric) func()
++
++	// EnforceMetricsRecorderEmbedding is included to force implementers to embed
++	// another implementation of this interface, allowing gRPC to add methods
++	// without breaking users.
++	internal.EnforceMetricsRecorderEmbedding
++}
++
++// AsyncMetricReporter is an interface for types that record metrics asynchronously
++// for the set of descriptors they are registered with. The AsyncMetricsRecorder
++// parameter is used to record values for these metrics.
++//
++// Implementations must make unique recordings across all registered
++// AsyncMetricReporters. Meaning, they should not report values for a metric with
++// the same attributes as another AsyncMetricReporter will report.
++//
++// Implementations must be concurrent-safe.
++type AsyncMetricReporter interface {
++	// Report records metric values using the provided recorder.
++	Report(AsyncMetricsRecorder) error
++}
++
++// AsyncMetricReporterFunc is an adapter to allow the use of ordinary functions as
++// AsyncMetricReporters.
++type AsyncMetricReporterFunc func(AsyncMetricsRecorder) error
++
++// Report calls f(r).
++func (f AsyncMetricReporterFunc) Report(r AsyncMetricsRecorder) error {
++	return f(r)
+ }
+ 
+ // AsyncMetricsRecorder records on asynchronous metrics derived from metric registry.
+@@ -62,3 +99,33 @@ type Metric = string
+ func NewMetrics(metrics ...Metric) *Metrics {
+ 	return stats.NewMetricSet(metrics...)
+ }
++
++// UnimplementedMetricsRecorder must be embedded to have forward compatible implementations.
++type UnimplementedMetricsRecorder struct {
++	internal.EnforceMetricsRecorderEmbedding
++}
++
++// RecordInt64Count provides a no-op implementation.
++func (UnimplementedMetricsRecorder) RecordInt64Count(*Int64CountHandle, int64, ...string) {}
++
++// RecordFloat64Count provides a no-op implementation.
++func (UnimplementedMetricsRecorder) RecordFloat64Count(*Float64CountHandle, float64, ...string) {}
++
++// RecordInt64Histo provides a no-op implementation.
++func (UnimplementedMetricsRecorder) RecordInt64Histo(*Int64HistoHandle, int64, ...string) {}
++
++// RecordFloat64Histo provides a no-op implementation.
++func (UnimplementedMetricsRecorder) RecordFloat64Histo(*Float64HistoHandle, float64, ...string) {}
++
++// RecordInt64Gauge provides a no-op implementation.
++func (UnimplementedMetricsRecorder) RecordInt64Gauge(*Int64GaugeHandle, int64, ...string) {}
++
++// RecordInt64UpDownCount provides a no-op implementation.
++func (UnimplementedMetricsRecorder) RecordInt64UpDownCount(*Int64UpDownCountHandle, int64, ...string) {
++}
++
++// RegisterAsyncReporter provides a no-op implementation.
++func (UnimplementedMetricsRecorder) RegisterAsyncReporter(AsyncMetricReporter, ...AsyncMetric) func() {
++	// No-op: Return an empty function to ensure caller doesn't panic on nil function call
++	return func() {}
++}
+diff --git a/vendor/google.golang.org/grpc/interceptor.go b/vendor/google.golang.org/grpc/interceptor.go
+index 877d78fc3..099e3d093 100644
+--- a/vendor/google.golang.org/grpc/interceptor.go
++++ b/vendor/google.golang.org/grpc/interceptor.go
+@@ -97,8 +97,12 @@ type StreamServerInfo struct {
+ 	IsServerStream bool
+ }
+ 
+-// StreamServerInterceptor provides a hook to intercept the execution of a streaming RPC on the server.
+-// info contains all the information of this RPC the interceptor can operate on. And handler is the
+-// service method implementation. It is the responsibility of the interceptor to invoke handler to
+-// complete the RPC.
++// StreamServerInterceptor provides a hook to intercept the execution of a
++// streaming RPC on the server.
++//
++// srv is the service implementation on which the RPC was invoked, and needs to
++// be passed to handler, and not used otherwise. ss is the server side of the
++// stream. info contains all the information of this RPC the interceptor can
++// operate on. And handler is the service method implementation. It is the
++// responsibility of the interceptor to invoke handler to complete the RPC.
+ type StreamServerInterceptor func(srv any, ss ServerStream, info *StreamServerInfo, handler StreamHandler) error
+diff --git a/vendor/google.golang.org/grpc/internal/balancer/weight/weight.go b/vendor/google.golang.org/grpc/internal/balancer/weight/weight.go
+new file mode 100644
+index 000000000..11beb07d1
+--- /dev/null
++++ b/vendor/google.golang.org/grpc/internal/balancer/weight/weight.go
+@@ -0,0 +1,66 @@
++/*
++ *
++ * Copyright 2025 gRPC authors.
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *     http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ *
++ */
++
++// Package weight contains utilities to manage endpoint weights. Weights are
++// used by LB policies such as ringhash to distribute load across multiple
++// endpoints.
++package weight
++
++import (
++	"fmt"
++
++	"google.golang.org/grpc/resolver"
++)
++
++// attributeKey is the type used as the key to store EndpointInfo in the
++// Attributes field of resolver.Endpoint.
++type attributeKey struct{}
++
++// EndpointInfo will be stored in the Attributes field of Endpoints in order to
++// use the ringhash balancer.
++type EndpointInfo struct {
++	Weight uint32
++}
++
++// Equal allows the values to be compared by Attributes.Equal.
++func (a EndpointInfo) Equal(o any) bool {
++	oa, ok := o.(EndpointInfo)
++	return ok && oa.Weight == a.Weight
++}
++
++// Set returns a copy of endpoint in which the Attributes field is updated with
++// EndpointInfo.
++func Set(endpoint resolver.Endpoint, epInfo EndpointInfo) resolver.Endpoint {
++	endpoint.Attributes = endpoint.Attributes.WithValue(attributeKey{}, epInfo)
++	return endpoint
++}
++
++// String returns a human-readable representation of EndpointInfo.
++// This method is intended for logging, testing, and debugging purposes only.
++// Do not rely on the output format, as it is not guaranteed to remain stable.
++func (a EndpointInfo) String() string {
++	return fmt.Sprintf("Weight: %d", a.Weight)
++}
++
++// FromEndpoint returns the EndpointInfo stored in the Attributes field of an
++// endpoint. It returns an empty EndpointInfo if attribute is not found.
++func FromEndpoint(endpoint resolver.Endpoint) EndpointInfo {
++	v := endpoint.Attributes.Value(attributeKey{})
++	ei, _ := v.(EndpointInfo)
++	return ei
++}
+diff --git a/vendor/google.golang.org/grpc/internal/envconfig/envconfig.go b/vendor/google.golang.org/grpc/internal/envconfig/envconfig.go
+index 6414ee4bb..7ad6fb44c 100644
+--- a/vendor/google.golang.org/grpc/internal/envconfig/envconfig.go
++++ b/vendor/google.golang.org/grpc/internal/envconfig/envconfig.go
+@@ -82,6 +82,28 @@ var (
+ 	// This feature is defined in gRFC A81 and is enabled by setting the
+ 	// environment variable GRPC_EXPERIMENTAL_XDS_AUTHORITY_REWRITE to "true".
+ 	XDSAuthorityRewrite = boolFromEnv("GRPC_EXPERIMENTAL_XDS_AUTHORITY_REWRITE", false)
++
++	// PickFirstWeightedShuffling indicates whether weighted endpoint shuffling
++	// is enabled in the pick_first LB policy, as defined in gRFC A113. This
++	// feature can be disabled by setting the environment variable
++	// GRPC_EXPERIMENTAL_PF_WEIGHTED_SHUFFLING to "false".
++	PickFirstWeightedShuffling = boolFromEnv("GRPC_EXPERIMENTAL_PF_WEIGHTED_SHUFFLING", true)
++
++	// DisableStrictPathChecking indicates whether strict path checking is
++	// disabled. This feature can be disabled by setting the environment
++	// variable GRPC_GO_EXPERIMENTAL_DISABLE_STRICT_PATH_CHECKING to "true".
++	//
++	// When strict path checking is enabled, gRPC will reject requests with
++	// paths that do not conform to the gRPC over HTTP/2 specification found at
++	// https://github.com/grpc/grpc/blob/master/doc/PROTOCOL-HTTP2.md.
++	//
++	// When disabled, gRPC will allow paths that do not contain a leading slash.
++	// Enabling strict path checking is recommended for security reasons, as it
++	// prevents potential path traversal vulnerabilities.
++	//
++	// A future release will remove this environment variable, enabling strict
++	// path checking behavior unconditionally.
++	DisableStrictPathChecking = boolFromEnv("GRPC_GO_EXPERIMENTAL_DISABLE_STRICT_PATH_CHECKING", false)
+ )
+ 
+ func boolFromEnv(envVar string, def bool) bool {
+diff --git a/vendor/google.golang.org/grpc/internal/experimental.go b/vendor/google.golang.org/grpc/internal/experimental.go
+index c90cc51bd..8a999917d 100644
+--- a/vendor/google.golang.org/grpc/internal/experimental.go
++++ b/vendor/google.golang.org/grpc/internal/experimental.go
+@@ -26,6 +26,9 @@ var (
+ 	// option to configure a shared buffer pool for a grpc.Server.
+ 	BufferPool any // func (grpc.SharedBufferPool) grpc.ServerOption
+ 
++	// SetDefaultBufferPool updates the default buffer pool.
++	SetDefaultBufferPool any // func(mem.BufferPool)
++
+ 	// AcceptCompressors is implemented by the grpc package and returns
+ 	// a call option that restricts the grpc-accept-encoding header for a call.
+ 	AcceptCompressors any // func(...string) grpc.CallOption
+diff --git a/vendor/google.golang.org/grpc/internal/internal.go b/vendor/google.golang.org/grpc/internal/internal.go
+index 27bef83d9..4b3d563f8 100644
+--- a/vendor/google.golang.org/grpc/internal/internal.go
++++ b/vendor/google.golang.org/grpc/internal/internal.go
+@@ -211,22 +211,11 @@ var (
+ 	// default resolver scheme.
+ 	UserSetDefaultScheme = false
+ 
+-	// ConnectedAddress returns the connected address for a SubConnState. The
+-	// address is only valid if the state is READY.
+-	ConnectedAddress any // func (scs SubConnState) resolver.Address
+-
+-	// SetConnectedAddress sets the connected address for a SubConnState.
+-	SetConnectedAddress any // func(scs *SubConnState, addr resolver.Address)
+-
+ 	// SnapshotMetricRegistryForTesting snapshots the global data of the metric
+ 	// registry. Returns a cleanup function that sets the metric registry to its
+ 	// original state. Only called in testing functions.
+ 	SnapshotMetricRegistryForTesting func() func()
+ 
+-	// SetDefaultBufferPoolForTesting updates the default buffer pool, for
+-	// testing purposes.
+-	SetDefaultBufferPoolForTesting any // func(mem.BufferPool)
+-
+ 	// SetBufferPoolingThresholdForTesting updates the buffer pooling threshold, for
+ 	// testing purposes.
+ 	SetBufferPoolingThresholdForTesting any // func(int)
+@@ -248,6 +237,14 @@ var (
+ 	// AddressToTelemetryLabels is an xDS-provided function to extract telemetry
+ 	// labels from a resolver.Address. Callers must assert its type before calling.
+ 	AddressToTelemetryLabels any // func(addr resolver.Address) map[string]string
++
++	// AsyncReporterCleanupDelegate is initialized to a pass-through function by
++	// default (production behavior), allowing tests to swap it with an
++	// implementation which tracks registration of async reporter and its
++	// corresponding cleanup.
++	AsyncReporterCleanupDelegate = func(cleanup func()) func() {
++		return cleanup
++	}
+ )
+ 
+ // HealthChecker defines the signature of the client-side LB channel health
+@@ -295,3 +292,9 @@ type EnforceClientConnEmbedding interface {
+ type Timer interface {
+ 	Stop() bool
+ }
++
++// EnforceMetricsRecorderEmbedding is used to enforce proper MetricsRecorder
++// implementation embedding.
++type EnforceMetricsRecorderEmbedding interface {
++	enforceMetricsRecorderEmbedding()
++}
+diff --git a/vendor/google.golang.org/grpc/internal/resolver/dns/dns_resolver.go b/vendor/google.golang.org/grpc/internal/resolver/dns/dns_resolver.go
+index ada5251cf..70b89e4d7 100644
+--- a/vendor/google.golang.org/grpc/internal/resolver/dns/dns_resolver.go
++++ b/vendor/google.golang.org/grpc/internal/resolver/dns/dns_resolver.go
+@@ -125,7 +125,10 @@ func (b *dnsBuilder) Build(target resolver.Target, cc resolver.ClientConn, opts
+ 	// IP address.
+ 	if ipAddr, err := formatIP(host); err == nil {
+ 		addr := []resolver.Address{{Addr: ipAddr + ":" + port}}
+-		cc.UpdateState(resolver.State{Addresses: addr})
++		cc.UpdateState(resolver.State{
++			Addresses: addr,
++			Endpoints: []resolver.Endpoint{{Addresses: addr}},
++		})
+ 		return deadResolver{}, nil
+ 	}
+ 
+@@ -342,7 +345,15 @@ func (d *dnsResolver) lookup() (*resolver.State, error) {
+ 		return nil, hostErr
+ 	}
+ 
+-	state := resolver.State{Addresses: addrs}
++	eps := make([]resolver.Endpoint, 0, len(addrs))
++	for _, addr := range addrs {
++		eps = append(eps, resolver.Endpoint{Addresses: []resolver.Address{addr}})
++	}
++
++	state := resolver.State{
++		Addresses: addrs,
++		Endpoints: eps,
++	}
+ 	if len(srv) > 0 {
+ 		state = grpclbstate.Set(state, &grpclbstate.State{BalancerAddresses: srv})
+ 	}
+diff --git a/vendor/google.golang.org/grpc/internal/stats/metrics_recorder_list.go b/vendor/google.golang.org/grpc/internal/stats/metrics_recorder_list.go
+index d5f7e4d62..1c8c2ab30 100644
+--- a/vendor/google.golang.org/grpc/internal/stats/metrics_recorder_list.go
++++ b/vendor/google.golang.org/grpc/internal/stats/metrics_recorder_list.go
+@@ -20,6 +20,7 @@ import (
+ 	"fmt"
+ 
+ 	estats "google.golang.org/grpc/experimental/stats"
++	"google.golang.org/grpc/internal"
+ 	"google.golang.org/grpc/stats"
+ )
+ 
+@@ -28,6 +29,7 @@ import (
+ // It eats any record calls where the label values provided do not match the
+ // number of label keys.
+ type MetricsRecorderList struct {
++	internal.EnforceMetricsRecorderEmbedding
+ 	// metricsRecorders are the metrics recorders this list will forward to.
+ 	metricsRecorders []estats.MetricsRecorder
+ }
+@@ -113,3 +115,61 @@ func (l *MetricsRecorderList) RecordInt64Gauge(handle *estats.Int64GaugeHandle,
+ 		metricRecorder.RecordInt64Gauge(handle, incr, labels...)
+ 	}
+ }
++
++// RegisterAsyncReporter forwards the registration to all underlying metrics
++// recorders.
++//
++// It returns a cleanup function that, when called, invokes the cleanup function
++// returned by each underlying recorder, ensuring the reporter is unregistered
++// from all of them.
++func (l *MetricsRecorderList) RegisterAsyncReporter(reporter estats.AsyncMetricReporter, metrics ...estats.AsyncMetric) func() {
++	descriptorsMap := make(map[*estats.MetricDescriptor]bool, len(metrics))
++	for _, m := range metrics {
++		descriptorsMap[m.Descriptor()] = true
++	}
++	unregisterFns := make([]func(), 0, len(l.metricsRecorders))
++	for _, mr := range l.metricsRecorders {
++		// Wrap the AsyncMetricsRecorder to intercept calls to RecordInt64Gauge
++		// and validate the labels.
++		wrappedCallback := func(recorder estats.AsyncMetricsRecorder) error {
++			wrappedRecorder := &asyncRecorderWrapper{
++				delegate:    recorder,
++				descriptors: descriptorsMap,
++			}
++			return reporter.Report(wrappedRecorder)
++		}
++		unregisterFns = append(unregisterFns, mr.RegisterAsyncReporter(estats.AsyncMetricReporterFunc(wrappedCallback), metrics...))
++	}
++
++	// Wrap the cleanup function using the internal delegate.
++	// In production, this returns realCleanup as-is.
++	// In tests, the leak checker can swap this to track the registration lifetime.
++	return internal.AsyncReporterCleanupDelegate(defaultCleanUp(unregisterFns))
++}
++
++func defaultCleanUp(unregisterFns []func()) func() {
++	return func() {
++		for _, unregister := range unregisterFns {
++			unregister()
++		}
++	}
++}
++
++type asyncRecorderWrapper struct {
++	delegate    estats.AsyncMetricsRecorder
++	descriptors map[*estats.MetricDescriptor]bool
++}
++
++// RecordIntAsync64Gauge records the measurement alongside labels on the int
++// gauge associated with the provided handle.
++func (w *asyncRecorderWrapper) RecordInt64AsyncGauge(handle *estats.Int64AsyncGaugeHandle, value int64, labels ...string) {
++	// Ensure only metrics for descriptors passed during callback registration
++	// are emitted.
++	d := handle.Descriptor()
++	if _, ok := w.descriptors[d]; !ok {
++		return
++	}
++	// Validate labels and delegate.
++	verifyLabels(d, labels...)
++	w.delegate.RecordInt64AsyncGauge(handle, value, labels...)
++}
+diff --git a/vendor/google.golang.org/grpc/internal/transport/client_stream.go b/vendor/google.golang.org/grpc/internal/transport/client_stream.go
+index 980452519..cd8152ef1 100644
+--- a/vendor/google.golang.org/grpc/internal/transport/client_stream.go
++++ b/vendor/google.golang.org/grpc/internal/transport/client_stream.go
+@@ -24,6 +24,7 @@ import (
+ 	"golang.org/x/net/http2"
+ 	"google.golang.org/grpc/mem"
+ 	"google.golang.org/grpc/metadata"
++	"google.golang.org/grpc/stats"
+ 	"google.golang.org/grpc/status"
+ )
+ 
+@@ -46,10 +47,11 @@ type ClientStream struct {
+ 	// meaningful after headerChan is closed (always call waitOnHeader() before
+ 	// reading its value).
+ 	headerValid      bool
+-	noHeaders        bool        // set if the client never received headers (set only after the stream is done).
+-	headerChanClosed uint32      // set when headerChan is closed. Used to avoid closing headerChan multiple times.
+-	bytesReceived    atomic.Bool // indicates whether any bytes have been received on this stream
+-	unprocessed      atomic.Bool // set if the server sends a refused stream or GOAWAY including this stream
++	noHeaders        bool          // set if the client never received headers (set only after the stream is done).
++	headerChanClosed uint32        // set when headerChan is closed. Used to avoid closing headerChan multiple times.
++	bytesReceived    atomic.Bool   // indicates whether any bytes have been received on this stream
++	unprocessed      atomic.Bool   // set if the server sends a refused stream or GOAWAY including this stream
++	statsHandler     stats.Handler // nil for internal streams (e.g., health check, ORCA) where telemetry is not supported.
+ }
+ 
+ // Read reads an n byte message from the input stream.
+diff --git a/vendor/google.golang.org/grpc/internal/transport/controlbuf.go b/vendor/google.golang.org/grpc/internal/transport/controlbuf.go
+index 2dcd1e63b..7efa52478 100644
+--- a/vendor/google.golang.org/grpc/internal/transport/controlbuf.go
++++ b/vendor/google.golang.org/grpc/internal/transport/controlbuf.go
+@@ -24,16 +24,13 @@ import (
+ 	"fmt"
+ 	"net"
+ 	"runtime"
+-	"strconv"
+ 	"sync"
+ 	"sync/atomic"
+ 
+ 	"golang.org/x/net/http2"
+ 	"golang.org/x/net/http2/hpack"
+ 	"google.golang.org/grpc/internal/grpclog"
+-	"google.golang.org/grpc/internal/grpcutil"
+ 	"google.golang.org/grpc/mem"
+-	"google.golang.org/grpc/status"
+ )
+ 
+ var updateHeaderTblSize = func(e *hpack.Encoder, v uint32) {
+@@ -147,11 +144,9 @@ type cleanupStream struct {
+ func (c *cleanupStream) isTransportResponseFrame() bool { return c.rst } // Results in a RST_STREAM
+ 
+ type earlyAbortStream struct {
+-	httpStatus     uint32
+-	streamID       uint32
+-	contentSubtype string
+-	status         *status.Status
+-	rst            bool
++	streamID uint32
++	rst      bool
++	hf       []hpack.HeaderField // Pre-built header fields
+ }
+ 
+ func (*earlyAbortStream) isTransportResponseFrame() bool { return false }
+@@ -843,18 +838,7 @@ func (l *loopyWriter) earlyAbortStreamHandler(eas *earlyAbortStream) error {
+ 	if l.side == clientSide {
+ 		return errors.New("earlyAbortStream not handled on client")
+ 	}
+-	// In case the caller forgets to set the http status, default to 200.
+-	if eas.httpStatus == 0 {
+-		eas.httpStatus = 200
+-	}
+-	headerFields := []hpack.HeaderField{
+-		{Name: ":status", Value: strconv.Itoa(int(eas.httpStatus))},
+-		{Name: "content-type", Value: grpcutil.ContentType(eas.contentSubtype)},
+-		{Name: "grpc-status", Value: strconv.Itoa(int(eas.status.Code()))},
+-		{Name: "grpc-message", Value: encodeGrpcMessage(eas.status.Message())},
+-	}
+-
+-	if err := l.writeHeader(eas.streamID, true, headerFields, nil); err != nil {
++	if err := l.writeHeader(eas.streamID, true, eas.hf, nil); err != nil {
+ 		return err
+ 	}
+ 	if eas.rst {
+diff --git a/vendor/google.golang.org/grpc/internal/transport/http2_client.go b/vendor/google.golang.org/grpc/internal/transport/http2_client.go
+index 38ca031af..37b1acc34 100644
+--- a/vendor/google.golang.org/grpc/internal/transport/http2_client.go
++++ b/vendor/google.golang.org/grpc/internal/transport/http2_client.go
+@@ -478,7 +478,7 @@ func NewHTTP2Client(connectCtx, ctx context.Context, addr resolver.Address, opts
+ 	return t, nil
+ }
+ 
+-func (t *http2Client) newStream(ctx context.Context, callHdr *CallHdr) *ClientStream {
++func (t *http2Client) newStream(ctx context.Context, callHdr *CallHdr, handler stats.Handler) *ClientStream {
+ 	// TODO(zhaoq): Handle uint32 overflow of Stream.id.
+ 	s := &ClientStream{
+ 		Stream: Stream{
+@@ -486,10 +486,11 @@ func (t *http2Client) newStream(ctx context.Context, callHdr *CallHdr) *ClientSt
+ 			sendCompress:   callHdr.SendCompress,
+ 			contentSubtype: callHdr.ContentSubtype,
+ 		},
+-		ct:         t,
+-		done:       make(chan struct{}),
+-		headerChan: make(chan struct{}),
+-		doneFunc:   callHdr.DoneFunc,
++		ct:           t,
++		done:         make(chan struct{}),
++		headerChan:   make(chan struct{}),
++		doneFunc:     callHdr.DoneFunc,
++		statsHandler: handler,
+ 	}
+ 	s.Stream.buf.init()
+ 	s.Stream.wq.init(defaultWriteQuota, s.done)
+@@ -744,7 +745,7 @@ func (e NewStreamError) Error() string {
+ 
+ // NewStream creates a stream and registers it into the transport as "active"
+ // streams.  All non-nil errors returned will be *NewStreamError.
+-func (t *http2Client) NewStream(ctx context.Context, callHdr *CallHdr) (*ClientStream, error) {
++func (t *http2Client) NewStream(ctx context.Context, callHdr *CallHdr, handler stats.Handler) (*ClientStream, error) {
+ 	ctx = peer.NewContext(ctx, t.Peer())
+ 
+ 	// ServerName field of the resolver returned address takes precedence over
+@@ -781,7 +782,7 @@ func (t *http2Client) NewStream(ctx context.Context, callHdr *CallHdr) (*ClientS
+ 	if err != nil {
+ 		return nil, &NewStreamError{Err: err, AllowTransparentRetry: false}
+ 	}
+-	s := t.newStream(ctx, callHdr)
++	s := t.newStream(ctx, callHdr, handler)
+ 	cleanup := func(err error) {
+ 		if s.swapState(streamDone) == streamDone {
+ 			// If it was already done, return.
+@@ -902,7 +903,7 @@ func (t *http2Client) NewStream(ctx context.Context, callHdr *CallHdr) (*ClientS
+ 			return nil, &NewStreamError{Err: ErrConnClosing, AllowTransparentRetry: true}
+ 		}
+ 	}
+-	if t.statsHandler != nil {
++	if s.statsHandler != nil {
+ 		header, ok := metadata.FromOutgoingContext(ctx)
+ 		if ok {
+ 			header.Set("user-agent", t.userAgent)
+@@ -911,7 +912,7 @@ func (t *http2Client) NewStream(ctx context.Context, callHdr *CallHdr) (*ClientS
+ 		}
+ 		// Note: The header fields are compressed with hpack after this call returns.
+ 		// No WireLength field is set here.
+-		t.statsHandler.HandleRPC(s.ctx, &stats.OutHeader{
++		s.statsHandler.HandleRPC(s.ctx, &stats.OutHeader{
+ 			Client:      true,
+ 			FullMethod:  callHdr.Method,
+ 			RemoteAddr:  t.remoteAddr,
+@@ -1587,16 +1588,16 @@ func (t *http2Client) operateHeaders(frame *http2.MetaHeadersFrame) {
+ 		}
+ 	}
+ 
+-	if t.statsHandler != nil {
++	if s.statsHandler != nil {
+ 		if !endStream {
+-			t.statsHandler.HandleRPC(s.ctx, &stats.InHeader{
++			s.statsHandler.HandleRPC(s.ctx, &stats.InHeader{
+ 				Client:      true,
+ 				WireLength:  int(frame.Header().Length),
+ 				Header:      metadata.MD(mdata).Copy(),
+ 				Compression: s.recvCompress,
+ 			})
+ 		} else {
+-			t.statsHandler.HandleRPC(s.ctx, &stats.InTrailer{
++			s.statsHandler.HandleRPC(s.ctx, &stats.InTrailer{
+ 				Client:     true,
+ 				WireLength: int(frame.Header().Length),
+ 				Trailer:    metadata.MD(mdata).Copy(),
+diff --git a/vendor/google.golang.org/grpc/internal/transport/http2_server.go b/vendor/google.golang.org/grpc/internal/transport/http2_server.go
+index 6f78a6b0c..a1a14e14f 100644
+--- a/vendor/google.golang.org/grpc/internal/transport/http2_server.go
++++ b/vendor/google.golang.org/grpc/internal/transport/http2_server.go
+@@ -479,13 +479,7 @@ func (t *http2Server) operateHeaders(ctx context.Context, frame *http2.MetaHeade
+ 		if t.logger.V(logLevel) {
+ 			t.logger.Infof("Aborting the stream early: %v", errMsg)
+ 		}
+-		t.controlBuf.put(&earlyAbortStream{
+-			httpStatus:     http.StatusBadRequest,
+-			streamID:       streamID,
+-			contentSubtype: s.contentSubtype,
+-			status:         status.New(codes.Internal, errMsg),
+-			rst:            !frame.StreamEnded(),
+-		})
++		t.writeEarlyAbort(streamID, s.contentSubtype, status.New(codes.Internal, errMsg), http.StatusBadRequest, !frame.StreamEnded())
+ 		return nil
+ 	}
+ 
+@@ -499,23 +493,11 @@ func (t *http2Server) operateHeaders(ctx context.Context, frame *http2.MetaHeade
+ 		return nil
+ 	}
+ 	if !isGRPC {
+-		t.controlBuf.put(&earlyAbortStream{
+-			httpStatus:     http.StatusUnsupportedMediaType,
+-			streamID:       streamID,
+-			contentSubtype: s.contentSubtype,
+-			status:         status.Newf(codes.InvalidArgument, "invalid gRPC request content-type %q", contentType),
+-			rst:            !frame.StreamEnded(),
+-		})
++		t.writeEarlyAbort(streamID, s.contentSubtype, status.Newf(codes.InvalidArgument, "invalid gRPC request content-type %q", contentType), http.StatusUnsupportedMediaType, !frame.StreamEnded())
+ 		return nil
+ 	}
+ 	if headerError != nil {
+-		t.controlBuf.put(&earlyAbortStream{
+-			httpStatus:     http.StatusBadRequest,
+-			streamID:       streamID,
+-			contentSubtype: s.contentSubtype,
+-			status:         headerError,
+-			rst:            !frame.StreamEnded(),
+-		})
++		t.writeEarlyAbort(streamID, s.contentSubtype, headerError, http.StatusBadRequest, !frame.StreamEnded())
+ 		return nil
+ 	}
+ 
+@@ -569,13 +551,7 @@ func (t *http2Server) operateHeaders(ctx context.Context, frame *http2.MetaHeade
+ 		if t.logger.V(logLevel) {
+ 			t.logger.Infof("Aborting the stream early: %v", errMsg)
+ 		}
+-		t.controlBuf.put(&earlyAbortStream{
+-			httpStatus:     http.StatusMethodNotAllowed,
+-			streamID:       streamID,
+-			contentSubtype: s.contentSubtype,
+-			status:         status.New(codes.Internal, errMsg),
+-			rst:            !frame.StreamEnded(),
+-		})
++		t.writeEarlyAbort(streamID, s.contentSubtype, status.New(codes.Internal, errMsg), http.StatusMethodNotAllowed, !frame.StreamEnded())
+ 		s.cancel()
+ 		return nil
+ 	}
+@@ -590,27 +566,16 @@ func (t *http2Server) operateHeaders(ctx context.Context, frame *http2.MetaHeade
+ 			if !ok {
+ 				stat = status.New(codes.PermissionDenied, err.Error())
+ 			}
+-			t.controlBuf.put(&earlyAbortStream{
+-				httpStatus:     http.StatusOK,
+-				streamID:       s.id,
+-				contentSubtype: s.contentSubtype,
+-				status:         stat,
+-				rst:            !frame.StreamEnded(),
+-			})
++			t.writeEarlyAbort(s.id, s.contentSubtype, stat, http.StatusOK, !frame.StreamEnded())
+ 			return nil
+ 		}
+ 	}
+ 
+ 	if s.ctx.Err() != nil {
+ 		t.mu.Unlock()
++		st := status.New(codes.DeadlineExceeded, context.DeadlineExceeded.Error())
+ 		// Early abort in case the timeout was zero or so low it already fired.
+-		t.controlBuf.put(&earlyAbortStream{
+-			httpStatus:     http.StatusOK,
+-			streamID:       s.id,
+-			contentSubtype: s.contentSubtype,
+-			status:         status.New(codes.DeadlineExceeded, context.DeadlineExceeded.Error()),
+-			rst:            !frame.StreamEnded(),
+-		})
++		t.writeEarlyAbort(s.id, s.contentSubtype, st, http.StatusOK, !frame.StreamEnded())
+ 		return nil
+ 	}
+ 
+@@ -969,13 +934,12 @@ func appendHeaderFieldsFromMD(headerFields []hpack.HeaderField, md metadata.MD)
+ 	return headerFields
+ }
+ 
+-func (t *http2Server) checkForHeaderListSize(it any) bool {
++func (t *http2Server) checkForHeaderListSize(hf []hpack.HeaderField) bool {
+ 	if t.maxSendHeaderListSize == nil {
+ 		return true
+ 	}
+-	hdrFrame := it.(*headerFrame)
+ 	var sz int64
+-	for _, f := range hdrFrame.hf {
++	for _, f := range hf {
+ 		if sz += int64(f.Size()); sz > int64(*t.maxSendHeaderListSize) {
+ 			if t.logger.V(logLevel) {
+ 				t.logger.Infof("Header list size to send violates the maximum size (%d bytes) set by client", *t.maxSendHeaderListSize)
+@@ -986,6 +950,42 @@ func (t *http2Server) checkForHeaderListSize(it any) bool {
+ 	return true
+ }
+ 
++// writeEarlyAbort sends an early abort response with the given HTTP status and
++// gRPC status. If the header list size exceeds the peer's limit, it sends a
++// RST_STREAM instead.
++func (t *http2Server) writeEarlyAbort(streamID uint32, contentSubtype string, stat *status.Status, httpStatus uint32, rst bool) {
++	hf := []hpack.HeaderField{
++		{Name: ":status", Value: strconv.Itoa(int(httpStatus))},
++		{Name: "content-type", Value: grpcutil.ContentType(contentSubtype)},
++		{Name: "grpc-status", Value: strconv.Itoa(int(stat.Code()))},
++		{Name: "grpc-message", Value: encodeGrpcMessage(stat.Message())},
++	}
++	if p := istatus.RawStatusProto(stat); len(p.GetDetails()) > 0 {
++		stBytes, err := proto.Marshal(p)
++		if err != nil {
++			t.logger.Errorf("Failed to marshal rpc status: %s, error: %v", pretty.ToJSON(p), err)
++		}
++		if err == nil {
++			hf = append(hf, hpack.HeaderField{Name: grpcStatusDetailsBinHeader, Value: encodeBinHeader(stBytes)})
++		}
++	}
++	success, _ := t.controlBuf.executeAndPut(func() bool {
++		return t.checkForHeaderListSize(hf)
++	}, &earlyAbortStream{
++		streamID: streamID,
++		rst:      rst,
++		hf:       hf,
++	})
++	if !success {
++		t.controlBuf.put(&cleanupStream{
++			streamID: streamID,
++			rst:      true,
++			rstCode:  http2.ErrCodeInternal,
++			onWrite:  func() {},
++		})
++	}
++}
++
+ func (t *http2Server) streamContextErr(s *ServerStream) error {
+ 	select {
+ 	case <-t.done:
+@@ -1041,7 +1041,7 @@ func (t *http2Server) writeHeaderLocked(s *ServerStream) error {
+ 		endStream: false,
+ 		onWrite:   t.setResetPingStrikes,
+ 	}
+-	success, err := t.controlBuf.executeAndPut(func() bool { return t.checkForHeaderListSize(hf) }, hf)
++	success, err := t.controlBuf.executeAndPut(func() bool { return t.checkForHeaderListSize(hf.hf) }, hf)
+ 	if !success {
+ 		if err != nil {
+ 			return err
+@@ -1111,7 +1111,7 @@ func (t *http2Server) writeStatus(s *ServerStream, st *status.Status) error {
+ 	}
+ 
+ 	success, err := t.controlBuf.executeAndPut(func() bool {
+-		return t.checkForHeaderListSize(trailingHeader)
++		return t.checkForHeaderListSize(trailingHeader.hf)
+ 	}, nil)
+ 	if !success {
+ 		if err != nil {
+diff --git a/vendor/google.golang.org/grpc/internal/transport/transport.go b/vendor/google.golang.org/grpc/internal/transport/transport.go
+index 6daf1e002..b86094da9 100644
+--- a/vendor/google.golang.org/grpc/internal/transport/transport.go
++++ b/vendor/google.golang.org/grpc/internal/transport/transport.go
+@@ -378,12 +378,28 @@ func (s *Stream) ReadMessageHeader(header []byte) (err error) {
+ 	return nil
+ }
+ 
++// ceil returns the ceil after dividing the numerator and denominator while
++// avoiding integer overflows.
++func ceil(numerator, denominator int) int {
++	if numerator == 0 {
++		return 0
++	}
++	return (numerator-1)/denominator + 1
++}
++
+ // Read reads n bytes from the wire for this stream.
+ func (s *Stream) read(n int) (data mem.BufferSlice, err error) {
+ 	// Don't request a read if there was an error earlier
+ 	if er := s.trReader.er; er != nil {
+ 		return nil, er
+ 	}
++	// gRPC Go accepts data frames with a maximum length of 16KB. Larger
++	// messages must be split into multiple frames. We pre-allocate the
++	// buffer to avoid resizing during the read loop, but cap the initial
++	// capacity to 128 frames (2MB) to prevent over-allocation or panics
++	// when reading extremely large streams.
++	allocCap := min(ceil(n, http2MaxFrameLen), 128)
++	data = make(mem.BufferSlice, 0, allocCap)
+ 	s.readRequester.requestRead(n)
+ 	for n != 0 {
+ 		buf, err := s.trReader.Read(n)
+@@ -574,9 +590,14 @@ type CallHdr struct {
+ 
+ 	DoneFunc func() // called when the stream is finished
+ 
+-	// Authority is used to explicitly override the `:authority` header. If set,
+-	// this value takes precedence over the Host field and will be used as the
+-	// value for the `:authority` header.
++	// Authority is used to explicitly override the `:authority` header.
++	//
++	// This value comes from one of two sources:
++	// 1. The `CallAuthority` call option, if specified by the user.
++	// 2. An override provided by the LB picker (e.g. xDS authority rewriting).
++	//
++	// The `CallAuthority` call option always takes precedence over the LB
++	// picker override.
+ 	Authority string
+ }
+ 
+@@ -596,7 +617,7 @@ type ClientTransport interface {
+ 	GracefulClose()
+ 
+ 	// NewStream creates a Stream for an RPC.
+-	NewStream(ctx context.Context, callHdr *CallHdr) (*ClientStream, error)
++	NewStream(ctx context.Context, callHdr *CallHdr, handler stats.Handler) (*ClientStream, error)
+ 
+ 	// Error returns a channel that is closed when some I/O error
+ 	// happens. Typically the caller should have a goroutine to monitor
+diff --git a/vendor/google.golang.org/grpc/mem/buffer_pool.go b/vendor/google.golang.org/grpc/mem/buffer_pool.go
+index e37afdd19..2ea763a49 100644
+--- a/vendor/google.golang.org/grpc/mem/buffer_pool.go
++++ b/vendor/google.golang.org/grpc/mem/buffer_pool.go
+@@ -53,7 +53,7 @@ var defaultBufferPool BufferPool
+ func init() {
+ 	defaultBufferPool = NewTieredBufferPool(defaultBufferPoolSizes...)
+ 
+-	internal.SetDefaultBufferPoolForTesting = func(pool BufferPool) {
++	internal.SetDefaultBufferPool = func(pool BufferPool) {
+ 		defaultBufferPool = pool
+ 	}
+ 
+diff --git a/vendor/google.golang.org/grpc/mem/buffers.go b/vendor/google.golang.org/grpc/mem/buffers.go
+index ecbf0b9a7..db1620e6a 100644
+--- a/vendor/google.golang.org/grpc/mem/buffers.go
++++ b/vendor/google.golang.org/grpc/mem/buffers.go
+@@ -62,7 +62,6 @@ var (
+ 	bufferPoolingThreshold = 1 << 10
+ 
+ 	bufferObjectPool = sync.Pool{New: func() any { return new(buffer) }}
+-	refObjectPool    = sync.Pool{New: func() any { return new(atomic.Int32) }}
+ )
+ 
+ // IsBelowBufferPoolingThreshold returns true if the given size is less than or
+@@ -73,9 +72,19 @@ func IsBelowBufferPoolingThreshold(size int) bool {
+ }
+ 
+ type buffer struct {
++	refs atomic.Int32
++	data []byte
++
++	// rootBuf is the buffer responsible for returning origData to the pool
++	// once the reference count drops to 0.
++	//
++	// When a buffer is split, the new buffer inherits the rootBuf of the
++	// original and increments the root's reference count. For the
++	// initial buffer (the root), this field points to itself.
++	rootBuf *buffer
++
++	// The following fields are only set for root buffers.
+ 	origData *[]byte
+-	data     []byte
+-	refs     *atomic.Int32
+ 	pool     BufferPool
+ }
+ 
+@@ -103,8 +112,8 @@ func NewBuffer(data *[]byte, pool BufferPool) Buffer {
+ 	b.origData = data
+ 	b.data = *data
+ 	b.pool = pool
+-	b.refs = refObjectPool.Get().(*atomic.Int32)
+-	b.refs.Add(1)
++	b.rootBuf = b
++	b.refs.Store(1)
+ 	return b
+ }
+ 
+@@ -127,42 +136,44 @@ func Copy(data []byte, pool BufferPool) Buffer {
+ }
+ 
+ func (b *buffer) ReadOnlyData() []byte {
+-	if b.refs == nil {
++	if b.rootBuf == nil {
+ 		panic("Cannot read freed buffer")
+ 	}
+ 	return b.data
+ }
+ 
+ func (b *buffer) Ref() {
+-	if b.refs == nil {
++	if b.refs.Add(1) <= 1 {
+ 		panic("Cannot ref freed buffer")
+ 	}
+-	b.refs.Add(1)
+ }
+ 
+ func (b *buffer) Free() {
+-	if b.refs == nil {
++	refs := b.refs.Add(-1)
++	if refs < 0 {
+ 		panic("Cannot free freed buffer")
+ 	}
+-
+-	refs := b.refs.Add(-1)
+-	switch {
+-	case refs > 0:
++	if refs > 0 {
+ 		return
+-	case refs == 0:
++	}
++
++	b.data = nil
++	if b.rootBuf == b {
++		// This buffer is the owner of the data slice and its ref count reached
++		// 0, free the slice.
+ 		if b.pool != nil {
+ 			b.pool.Put(b.origData)
++			b.pool = nil
+ 		}
+-
+-		refObjectPool.Put(b.refs)
+ 		b.origData = nil
+-		b.data = nil
+-		b.refs = nil
+-		b.pool = nil
+-		bufferObjectPool.Put(b)
+-	default:
+-		panic("Cannot free freed buffer")
++	} else {
++		// This buffer doesn't own the data slice, decrement a ref on the root
++		// buffer.
++		b.rootBuf.Free()
+ 	}
++
++	b.rootBuf = nil
++	bufferObjectPool.Put(b)
+ }
+ 
+ func (b *buffer) Len() int {
+@@ -170,16 +181,14 @@ func (b *buffer) Len() int {
+ }
+ 
+ func (b *buffer) split(n int) (Buffer, Buffer) {
+-	if b.refs == nil {
++	if b.rootBuf == nil || b.rootBuf.refs.Add(1) <= 1 {
+ 		panic("Cannot split freed buffer")
+ 	}
+ 
+-	b.refs.Add(1)
+ 	split := newBuffer()
+-	split.origData = b.origData
+ 	split.data = b.data[n:]
+-	split.refs = b.refs
+-	split.pool = b.pool
++	split.rootBuf = b.rootBuf
++	split.refs.Store(1)
+ 
+ 	b.data = b.data[:n]
+ 
+@@ -187,7 +196,7 @@ func (b *buffer) split(n int) (Buffer, Buffer) {
+ }
+ 
+ func (b *buffer) read(buf []byte) (int, Buffer) {
+-	if b.refs == nil {
++	if b.rootBuf == nil {
+ 		panic("Cannot read freed buffer")
+ 	}
+ 
+diff --git a/vendor/google.golang.org/grpc/resolver/resolver.go b/vendor/google.golang.org/grpc/resolver/resolver.go
+index 8e6af9514..598ed21a2 100644
+--- a/vendor/google.golang.org/grpc/resolver/resolver.go
++++ b/vendor/google.golang.org/grpc/resolver/resolver.go
+@@ -182,6 +182,7 @@ type BuildOptions struct {
+ 
+ // An Endpoint is one network endpoint, or server, which may have multiple
+ // addresses with which it can be accessed.
++// TODO(i/8773) : make resolver.Endpoint and resolver.Address immutable
+ type Endpoint struct {
+ 	// Addresses contains a list of addresses used to access this endpoint.
+ 	Addresses []Address
+diff --git a/vendor/google.golang.org/grpc/server.go b/vendor/google.golang.org/grpc/server.go
+index ddd377341..8efb29a7b 100644
+--- a/vendor/google.golang.org/grpc/server.go
++++ b/vendor/google.golang.org/grpc/server.go
+@@ -42,6 +42,7 @@ import (
+ 	"google.golang.org/grpc/internal"
+ 	"google.golang.org/grpc/internal/binarylog"
+ 	"google.golang.org/grpc/internal/channelz"
++	"google.golang.org/grpc/internal/envconfig"
+ 	"google.golang.org/grpc/internal/grpcsync"
+ 	"google.golang.org/grpc/internal/grpcutil"
+ 	istats "google.golang.org/grpc/internal/stats"
+@@ -149,6 +150,8 @@ type Server struct {
+ 
+ 	serverWorkerChannel      chan func()
+ 	serverWorkerChannelClose func()
++
++	strictPathCheckingLogEmitted atomic.Bool
+ }
+ 
+ type serverOptions struct {
+@@ -923,9 +926,7 @@ func (s *Server) Serve(lis net.Listener) error {
+ 					tempDelay = 5 * time.Millisecond
+ 				} else {
+ 					tempDelay *= 2
+-				}
+-				if max := 1 * time.Second; tempDelay > max {
+-					tempDelay = max
++					tempDelay = min(tempDelay, 1*time.Second)
+ 				}
+ 				s.mu.Lock()
+ 				s.printf("Accept error: %v; retrying in %v", err, tempDelay)
+@@ -1764,6 +1765,24 @@ func (s *Server) processStreamingRPC(ctx context.Context, stream *transport.Serv
+ 	return ss.s.WriteStatus(statusOK)
+ }
+ 
++func (s *Server) handleMalformedMethodName(stream *transport.ServerStream, ti *traceInfo) {
++	if ti != nil {
++		ti.tr.LazyLog(&fmtStringer{"Malformed method name %q", []any{stream.Method()}}, true)
++		ti.tr.SetError()
++	}
++	errDesc := fmt.Sprintf("malformed method name: %q", stream.Method())
++	if err := stream.WriteStatus(status.New(codes.Unimplemented, errDesc)); err != nil {
++		if ti != nil {
++			ti.tr.LazyLog(&fmtStringer{"%v", []any{err}}, true)
++			ti.tr.SetError()
++		}
++		channelz.Warningf(logger, s.channelz, "grpc: Server.handleStream failed to write status: %v", err)
++	}
++	if ti != nil {
++		ti.tr.Finish()
++	}
++}
++
+ func (s *Server) handleStream(t transport.ServerTransport, stream *transport.ServerStream) {
+ 	ctx := stream.Context()
+ 	ctx = contextWithServer(ctx, s)
+@@ -1784,26 +1803,30 @@ func (s *Server) handleStream(t transport.ServerTransport, stream *transport.Ser
+ 	}
+ 
+ 	sm := stream.Method()
+-	if sm != "" && sm[0] == '/' {
++	if sm == "" {
++		s.handleMalformedMethodName(stream, ti)
++		return
++	}
++	if sm[0] != '/' {
++		// TODO(easwars): Add a link to the CVE in the below log messages once
++		// published.
++		if envconfig.DisableStrictPathChecking {
++			if old := s.strictPathCheckingLogEmitted.Swap(true); !old {
++				channelz.Warningf(logger, s.channelz, "grpc: Server.handleStream received malformed method name %q. Allowing it because the environment variable GRPC_GO_EXPERIMENTAL_DISABLE_STRICT_PATH_CHECKING is set to true, but this option will be removed in a future release.", sm)
++			}
++		} else {
++			if old := s.strictPathCheckingLogEmitted.Swap(true); !old {
++				channelz.Warningf(logger, s.channelz, "grpc: Server.handleStream rejected malformed method name %q. To temporarily allow such requests, set the environment variable GRPC_GO_EXPERIMENTAL_DISABLE_STRICT_PATH_CHECKING to true. Note that this is not recommended as it may allow requests to bypass security policies.", sm)
++			}
++			s.handleMalformedMethodName(stream, ti)
++			return
++		}
++	} else {
+ 		sm = sm[1:]
+ 	}
+ 	pos := strings.LastIndex(sm, "/")
+ 	if pos == -1 {
+-		if ti != nil {
+-			ti.tr.LazyLog(&fmtStringer{"Malformed method name %q", []any{sm}}, true)
+-			ti.tr.SetError()
+-		}
+-		errDesc := fmt.Sprintf("malformed method name: %q", stream.Method())
+-		if err := stream.WriteStatus(status.New(codes.Unimplemented, errDesc)); err != nil {
+-			if ti != nil {
+-				ti.tr.LazyLog(&fmtStringer{"%v", []any{err}}, true)
+-				ti.tr.SetError()
+-			}
+-			channelz.Warningf(logger, s.channelz, "grpc: Server.handleStream failed to write status: %v", err)
+-		}
+-		if ti != nil {
+-			ti.tr.Finish()
+-		}
++		s.handleMalformedMethodName(stream, ti)
+ 		return
+ 	}
+ 	service := sm[:pos]
+diff --git a/vendor/google.golang.org/grpc/stream.go b/vendor/google.golang.org/grpc/stream.go
+index ec9577b27..eedb5f9b9 100644
+--- a/vendor/google.golang.org/grpc/stream.go
++++ b/vendor/google.golang.org/grpc/stream.go
+@@ -52,7 +52,8 @@ import (
+ var metadataFromOutgoingContextRaw = internal.FromOutgoingContextRaw.(func(context.Context) (metadata.MD, [][]string, bool))
+ 
+ // StreamHandler defines the handler called by gRPC server to complete the
+-// execution of a streaming RPC.
++// execution of a streaming RPC. srv is the service implementation on which the
++// RPC was invoked.
+ //
+ // If a StreamHandler returns an error, it should either be produced by the
+ // status package, or be one of the context errors. Otherwise, gRPC will use
+@@ -537,9 +538,17 @@ func (a *csAttempt) newStream() error {
+ 		md, _ := metadata.FromOutgoingContext(a.ctx)
+ 		md = metadata.Join(md, a.pickResult.Metadata)
+ 		a.ctx = metadata.NewOutgoingContext(a.ctx, md)
+-	}
+ 
+-	s, err := a.transport.NewStream(a.ctx, cs.callHdr)
++		// If the `CallAuthority` CallOption is not set, check if the LB picker
++		// has provided an authority override in the PickResult metadata and
++		// apply it, as specified in gRFC A81.
++		if cs.callInfo.authority == "" {
++			if authMD := a.pickResult.Metadata.Get(":authority"); len(authMD) > 0 {
++				cs.callHdr.Authority = authMD[0]
++			}
++		}
++	}
++	s, err := a.transport.NewStream(a.ctx, cs.callHdr, a.statsHandler)
+ 	if err != nil {
+ 		nse, ok := err.(*transport.NewStreamError)
+ 		if !ok {
+@@ -1341,10 +1350,12 @@ func newNonRetryClientStream(ctx context.Context, desc *StreamDesc, method strin
+ 		codec:            c.codec,
+ 		sendCompressorV0: cp,
+ 		sendCompressorV1: comp,
++		decompressorV0:   ac.cc.dopts.dc,
+ 		transport:        t,
+ 	}
+ 
+-	s, err := as.transport.NewStream(as.ctx, as.callHdr)
++	// nil stats handler: internal streams like health and ORCA do not support telemetry.
++	s, err := as.transport.NewStream(as.ctx, as.callHdr, nil)
+ 	if err != nil {
+ 		err = toRPCErr(err)
+ 		return nil, err
+diff --git a/vendor/google.golang.org/grpc/version.go b/vendor/google.golang.org/grpc/version.go
+index ff7840fd8..76c2eed77 100644
+--- a/vendor/google.golang.org/grpc/version.go
++++ b/vendor/google.golang.org/grpc/version.go
+@@ -19,4 +19,4 @@
+ package grpc
+ 
+ // Version is the current grpc version.
+-const Version = "1.78.0"
++const Version = "1.79.3"
+diff --git a/vendor/modules.txt b/vendor/modules.txt
+index 271bf64fe..864f4a40d 100644
+--- a/vendor/modules.txt
++++ b/vendor/modules.txt
+@@ -447,7 +447,7 @@ google.golang.org/genproto/googleapis/api/httpbody
+ ## explicit; go 1.24.0
+ google.golang.org/genproto/googleapis/rpc/errdetails
+ google.golang.org/genproto/googleapis/rpc/status
+-# google.golang.org/grpc v1.78.0
++# google.golang.org/grpc v1.79.3
+ ## explicit; go 1.24.0
+ google.golang.org/grpc
+ google.golang.org/grpc/attributes
+@@ -476,6 +476,7 @@ google.golang.org/grpc/health/grpc_health_v1
+ google.golang.org/grpc/internal
+ google.golang.org/grpc/internal/backoff
+ google.golang.org/grpc/internal/balancer/gracefulswitch
++google.golang.org/grpc/internal/balancer/weight
+ google.golang.org/grpc/internal/balancerload
+ google.golang.org/grpc/internal/binarylog
+ google.golang.org/grpc/internal/buffer
+-- 
+2.43.0
+
