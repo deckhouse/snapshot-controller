@@ -26,7 +26,9 @@ spec:
               source:
                 description: |-
                   Указывает источник создания снимка.
-                  Неизменяемо после создания.
+                  Может быть пустым для намерения восстановления (backup controller проставляет volumeSnapshotContentName после restore).
+                  Иначе должен быть указан ровно один из persistentVolumeClaimName или volumeSnapshotContentName.
+                  Неизменяемо после создания (кроме одноразовой установки volumeSnapshotContentName из пустого).
                 properties:
                   persistentVolumeClaimName:
                     description: |-
@@ -40,7 +42,7 @@ spec:
                       Имя существующего объекта VolumeSnapshotContent, представляющего существующий снимок тома.
                       Указывается, если снимок уже существует и требуется только
                       его представление в Kubernetes.
-                      Неизменяемо.
+                      Для намерения восстановления backup controller может один раз установить это поле из пустого после успешного restore.
               volumeSnapshotClassName:
                 description: |-
                   Имя VolumeSnapshotClass, запрошенного VolumeSnapshot.
@@ -136,7 +138,9 @@ spec:
               source:
                 description: |-
                   Указывает источник создания снимка.
-                  Неизменяемо после создания.
+                  Может быть пустым для намерения восстановления (backup controller проставляет volumeSnapshotContentName после restore).
+                  Иначе должен быть указан ровно один из persistentVolumeClaimName или volumeSnapshotContentName.
+                  Неизменяемо после создания (кроме одноразовой установки volumeSnapshotContentName из пустого).
                 properties:
                   persistentVolumeClaimName:
                     description: |-
@@ -150,7 +154,7 @@ spec:
                       Имя существующего объекта VolumeSnapshotContent, представляющего существующий снимок тома.
                       Указывается, если снимок уже существует и требуется только
                       его представление в Kubernetes.
-                      Неизменяемо.
+                      Для намерения восстановления backup controller может один раз установить это поле из пустого после успешного restore.
               volumeSnapshotClassName:
                 description: |-
                   Имя VolumeSnapshotClass, запрошенного VolumeSnapshot.
