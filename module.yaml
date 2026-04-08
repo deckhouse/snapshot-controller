@@ -10,7 +10,7 @@ descriptions:
   ru: |
     Включает поддержку снимков для совместимых CSI-драйверов в кластере.
 requirements:
-  deckhouse: ">= 1.71"
+  deckhouse: ">= 1.72"
 accessibility:
   editions:
     _default:
