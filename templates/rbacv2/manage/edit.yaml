@@ -23,3 +23,14 @@ rules:
   - update
   - patch
   - delete
+- apiGroups:
+  - snapshot.storage.k8s.io
+  resources:
+  - volumesnapshotclasses
+  - volumesnapshotcontents
+  verbs:
+  - create
+  - delete
+  - deletecollection
+  - patch
+  - update
