@@ -1,3 +1,4 @@
+{{- if not (.Values.global.enabledModules | has "storage-foundation") }}
 ---
 apiVersion: v1
 kind: ServiceAccount
@@ -48,3 +49,4 @@ subjects:
   - kind: ServiceAccount
     name: webhooks
     namespace: d8-{{ .Chart.Name }}
+{{- end }}
