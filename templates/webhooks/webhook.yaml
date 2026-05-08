@@ -1,3 +1,4 @@
+{{- if not (.Values.global.enabledModules | has "storage-foundation") }}
 ---
 apiVersion: admissionregistration.k8s.io/v1
 kind: MutatingWebhookConfiguration
@@ -24,3 +25,4 @@ webhooks:
     admissionReviewVersions: ["v1", "v1beta1"]
     sideEffects: None
     timeoutSeconds: 10
+{{- end }}

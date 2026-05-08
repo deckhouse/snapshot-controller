@@ -3,6 +3,7 @@ cpu: 10m
 memory: 25Mi
 {{- end }}
 
+{{- if not (.Values.global.enabledModules | has "storage-foundation") }}
 {{- if (.Values.global.enabledModules | has "vertical-pod-autoscaler") }}
 ---
 apiVersion: autoscaling.k8s.io/v1
@@ -129,3 +130,4 @@ spec:
             {{- include "helm_lib_container_kube_rbac_proxy_resources" . | nindent 12 }}
             {{- end }}
       serviceAccountName: snapshot-controller
+{{- end }}
