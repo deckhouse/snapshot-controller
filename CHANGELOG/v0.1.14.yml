@@ -1,7 +1,7 @@
-Изменения:
+Changes:
 - Fix CVE-2026-39883 in OpenTelemetry SDK dependency
 - Updating base images, Go and lib-helm
-- Доработки CI: DistroPackagesProxy and env proxy in werf, CVE-/gitleaks-/antivirus
+- CI improvements: DistroPackagesProxy and env proxy in werf, CVE-/gitleaks-/antivirus
     checks, actions and workflows synchronization
 - RBAC ClusterRoles for CRD module; remove-finalizers hook; CRD allows restore-intent
   for VolumeSnapshot
