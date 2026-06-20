@@ -15,3 +15,7 @@ linters-settings:
         - kind: Deployment
           name: snapshot-validation-webhook
           container: snapshot-validation
+  no-cyrillic:
+    exclude-rules:
+      directories:
+        - hack/
