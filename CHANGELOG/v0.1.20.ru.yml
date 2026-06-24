@@ -1,0 +1,3 @@
+Изменения:
+  - Cluster-ресурсы VolumeSnapshotContent исключены из уровня доступа User в RBAC
+  - Обновление базовых образов container-base до v1.1.2
