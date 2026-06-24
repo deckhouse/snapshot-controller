@@ -1,0 +1,4 @@
+Changes:
+- Cluster resources VolumeSnapshotContent are excluded from the User access level
+  in RBAC
+- Updating container-base images to v1.1.2
