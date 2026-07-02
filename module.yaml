@@ -2,7 +2,6 @@ name: snapshot-controller
 stage: "General Availability"
 subsystems:
   - storage
-  - infrastructure
 namespace: d8-snapshot-controller
 descriptions:
   en: |
