@@ -4,7 +4,7 @@ on:
   schedule:
     - cron: "0 01 * * 0,3" # Regular CVE scan
   pull_request:
-    types: [opened, reopened, labeled, synchronize]
+    types: [opened, reopened, labeled, synchronize, ready_for_review]
   push:
     branches:
       - main
@@ -34,6 +34,8 @@ jobs:
     secrets: inherit
     with:
       svace_enabled: ${{ github.event.inputs.svace_enabled && true || false }}
+      # E2E is wired in build_dev.yml but not triggered yet (no e2e/ tests). Enable when tests land:
+      # run_e2e_smoke_tests: ${{ github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'e2e-smoke-test') }}
   cve_scan_on_pr:
     if: github.event_name == 'pull_request'
     name: CVE scan for PR
