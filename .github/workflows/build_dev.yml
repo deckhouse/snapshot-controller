@@ -21,13 +21,6 @@ on:
         description: "Enable svace build and analyze"
         type: boolean
         required: false
-      # Set only from "Build and checks" (trivy_image_check.yaml). Do not rely on github.event.pull_request
-      # inside this reusable workflow — github.event may not match the caller's pull_request payload.
-      run_e2e_smoke_tests:
-        description: "Run E2E smoke tests (PR has label e2e-smoke-test)"
-        type: boolean
-        required: false
-        default: false
   push:
     branches:
       - main
@@ -188,24 +181,3 @@ jobs:
           svacer_import_user: "${{ secrets.SVACER_IMPORT_USER }}"
           svacer_import_password: "${{ secrets.SVACER_IMPORT_PASSWORD }}"
           svace_analyze_ssh_private_key: "${{ secrets.SVACE_ANALYZE_SSH_PRIVATE_KEY }}"
-
-  # E2E: gate by input from caller (trivy) so label detection uses the same github.event as the top-level workflow.
-  # Uses the unified storage-e2e reusable pipeline (deckhouse/storage-e2e/.github/workflows/e2e.yml).
-  # Disabled until e2e/ tests are added: caller keeps run_e2e_smoke_tests=false (no e2e-smoke-test label wiring yet).
-  run_e2e_smoke_tests:
-    if: ${{ inputs.run_e2e_smoke_tests == true }}
-    name: Run E2E Smoke Tests
-    needs:
-      - dev_setup_build
-    uses: deckhouse/storage-e2e/.github/workflows/e2e.yml@main
-    secrets: inherit
-    with:
-      module_slug: ${{ vars.MODULE_NAME }}
-      module_path: e2e
-      cluster_provider: dvp
-      cluster_config: e2e/tests/cluster_config.yml
-      test_package: ./tests/
-      label_filter: e2e-tests
-      test_timeout: 90m
-      module_image_tag: pr${{ github.event.pull_request.number }}
-      storage_e2e_ref: main
