@@ -46,29 +46,7 @@ jobs:
     continue-on-error: true
     name: Lint
     steps:
-      # Previous runs may leave e2e/.gomodcache (read-only module trees); actions/checkout@v4 fails to wipe workspace (EACCES).
-      - name: Prepare workspace for checkout (self-hosted)
-        run: |
-          set -euo pipefail
-          WS="${GITHUB_WORKSPACE}"
-          prune_dir() {
-            local p="$1"
-            [ -e "$p" ] || return 0
-            chmod -R u+w "$p" 2>/dev/null || true
-            if rm -rf "$p" 2>/dev/null; then
-              return 0
-            fi
-            if command -v sudo >/dev/null 2>&1; then
-              sudo chmod -R u+w "$p" 2>/dev/null || true
-              sudo rm -rf "$p" 2>/dev/null || true
-            fi
-          }
-          for d in e2e/.gomodcache e2e/.gocache e2e/temp; do
-            prune_dir "${WS}/${d}"
-          done
       - uses: actions/checkout@v4
-        with:
-          clean: false
       - name: Copy openapi/values_ce.yaml to openapi/values.yaml
         run: |
           if [ -f openapi/values_ce.yaml ]; then
