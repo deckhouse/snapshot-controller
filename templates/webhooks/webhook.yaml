@@ -4,6 +4,9 @@ apiVersion: admissionregistration.k8s.io/v1
 kind: MutatingWebhookConfiguration
 metadata:
   name: "d8-{{ .Chart.Name }}-volume-snapshot-mutation"
+  annotations:
+    werf.io/deploy-dependency-webhooks: state=ready,kind=Deployment,name=webhooks,namespace=d8-{{ .Chart.Name }}
+    werf.io/deploy-dependency-service: state=present,kind=Service,name=webhooks,namespace=d8-{{ .Chart.Name }}
   labels:
     heritage: deckhouse
     module: snapshot-controller
