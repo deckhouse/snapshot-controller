@@ -1,33 +1,40 @@
-name: E2E tests
+# Copyright 2026 Flant JSC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Copy of deckhouse/storage-e2e/.github/templates/e2e-tests.yml with module inputs adjusted.
+# Required: PR labels e2e/run, e2e/keep-cluster, e2e/label:* and the inherited
+# org/repo secrets (see storage-e2e README "Enabling e2e in your module").
+
+name: E2E
 
 on:
   pull_request:
-    types: [opened, reopened, labeled, synchronize, ready_for_review]
-
-concurrency:
-  group: e2e-${{ vars.MODULE_NAME }}-pr${{ github.event.pull_request.number }}
-  cancel-in-progress: false
+    types: [opened, synchronize, reopened, labeled]
 
 jobs:
-  build_dev:
-    if: ${{ contains(github.event.pull_request.labels.*.name, 'e2e-smoke-test') }}
-    uses: ./.github/workflows/build_dev.yml
-    secrets: inherit
-
   e2e:
-    if: ${{ contains(github.event.pull_request.labels.*.name, 'e2e-smoke-test') }}
-    name: Run E2E tests
-    needs:
-      - build_dev
+    # Heavy e2e runs only when the PR carries the e2e/run label.
+    if: ${{ contains(github.event.pull_request.labels.*.name, 'e2e/run') }}
     uses: deckhouse/storage-e2e/.github/workflows/e2e.yml@main
-    secrets: inherit
     with:
       module_slug: ${{ vars.MODULE_NAME }}
       module_path: e2e
-      cluster_config: e2e/tests/cluster_config.yml
       test_package: ./tests/
-      cluster_provider: dvp
-      label_filter: e2e-tests
-      test_timeout: 90m
+      cluster_config: e2e/tests/cluster_config.yml
       module_image_tag: pr${{ github.event.pull_request.number }}
-      storage_e2e_ref: main
+      # cluster_provider: dvp          # dvp (default) | commander
+      # label_filter: "!stress-test"   # optional override
+      # storage_e2e_ref: main          # optional
+      # test_timeout: 90m              # optional
+    secrets: inherit
