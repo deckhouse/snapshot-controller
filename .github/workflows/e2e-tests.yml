@@ -33,8 +33,4 @@ jobs:
       test_package: ./tests/
       cluster_config: e2e/tests/cluster_config.yml
       module_image_tag: pr${{ github.event.pull_request.number }}
-      # cluster_provider: dvp          # dvp (default) | commander
-      # label_filter: "!stress-test"   # optional override
-      # storage_e2e_ref: main          # optional
-      # test_timeout: 90m              # optional
     secrets: inherit

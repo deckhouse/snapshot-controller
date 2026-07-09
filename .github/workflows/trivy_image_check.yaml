@@ -4,7 +4,7 @@ on:
   schedule:
     - cron: "0 01 * * 0,3" # Regular CVE scan
   pull_request:
-    types: [opened, reopened, labeled, synchronize, ready_for_review]
+    types: [opened, reopened, labeled, synchronize]
   push:
     branches:
       - main
@@ -72,7 +72,7 @@ jobs:
             projects/data/24cb1d7c-717a-4f92-8547-26f632916a7a/Trivy_CVE_Scan_CI_Secrets CVE_TEST_REPO_GIT | CVE_TEST_REPO_GIT ;
             projects/data/24cb1d7c-717a-4f92-8547-26f632916a7a/Trivy_CVE_Scan_CI_Secrets DECKHOUSE_PRIVATE_REPO | DECKHOUSE_PRIVATE_REPO ;
             projects/data/b050f3bd-733f-4746-9640-9df80d484074/CODEOWNERS_REPO_TOKEN CODEOWNERS_REPO_TOKEN | CODEOWNERS_REPO_TOKEN ;
-      - uses: deckhouse/modules-actions/cve_scan@main
+      - uses: deckhouse/modules-actions/cve_scan@v11
         with:
           role_name: snapshot-controller
           source_tag: 'pr${{ github.event.number }}'
