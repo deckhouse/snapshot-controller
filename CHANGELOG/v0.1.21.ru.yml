@@ -1,0 +1,5 @@
+Изменения:
+  - Удалён хук, снимавший finalizers с ресурсов VolumeSnapshot, VolumeSnapshotContent и
+    VolumeSnapshotClass при выключении модуля. Выключение модуля больше не затрагивает эти
+    ресурсы, что делает безопасной передачу поддержки снимков модулю storage-foundation.
+  - Удалён неиспользуемый хук сертификата snapshot-validation-webhook и его схема values.
