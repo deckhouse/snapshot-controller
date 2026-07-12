@@ -1,0 +1,5 @@
+Changes:
+- Removed the snapshot.storage.k8s.io CRDs from the module bundle: they are now owned by the
+  storage-foundation module. Deckhouse does not delete existing CRDs when they disappear from a
+  bundle, so the definitions keep being served by storage-foundation. Apply this release only
+  after v0.2.0 (which shipped identical CRD copies); do not skip v0.2.0.
