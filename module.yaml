@@ -1,19 +1,25 @@
 name: snapshot-controller
-stage: "General Availability"
+stage: "Deprecated"
 subsystems:
   - storage
 namespace: d8-snapshot-controller
 descriptions:
   en: |
-    Enables snapshot support for compatible CSI-drivers in the cluster.
+    Enables snapshot support for compatible CSI-drivers in the cluster. Deprecated: the
+    functionality is provided by the storage-foundation module.
   ru: |
-    Включает поддержку снимков для совместимых CSI-драйверов в кластере.
+    Включает поддержку снимков для совместимых CSI-драйверов в кластере. Устарел:
+    функциональность предоставляет модуль storage-foundation.
 requirements:
   deckhouse: ">= 1.72"
+  modules:
+    # Present/enabled check, not a version floor: storage-foundation ships from main (no v1.0.0
+    # tag planned), so pin to ">= 0.0.0". On a dev build requirements are not enforced anyway; in
+    # prod this guarantees storage-foundation is available before this deprecated module activates.
+    storage-foundation: ">= 0.0.0"
 accessibility:
   editions:
     _default:
+      # Still explicitly enable-able, but no longer auto-enabled in any bundle: new clusters get
+      # the functionality from storage-foundation; existing explicit users keep it until they move.
       available: true
-      enabledInBundles:
-        - Default
-        - Managed
