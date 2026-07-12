@@ -13,10 +13,11 @@ descriptions:
 requirements:
   deckhouse: ">= 1.72"
   modules:
-    # Present/enabled check, not a version floor: storage-foundation ships from main (no v1.0.0
-    # tag planned), so pin to ">= 0.0.0". On a dev build requirements are not enforced anyway; in
-    # prod this guarantees storage-foundation is available before this deprecated module activates.
-    storage-foundation: ">= 0.0.0"
+    # Pin the storage-foundation GA baseline: snapshot support was handed over to it and this
+    # deprecated module must not activate before that successor is present at the released version.
+    # On a dev build requirements are not enforced anyway; in prod this guarantees storage-foundation
+    # v1.0.0+ (the release that ships the byte-for-byte-identical snapshot CRDs) is available.
+    storage-foundation: ">= 1.0.0"
 accessibility:
   editions:
     _default:
