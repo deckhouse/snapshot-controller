@@ -1,0 +1,9 @@
+Changes:
+- The module is deprecated; CSI snapshot support is provided by the storage-foundation module.
+  It is no longer auto-enabled in any bundle (still explicitly enable-able) and now requires the
+  storage-foundation module to be present.
+- The three snapshot.storage.k8s.io CRDs are shipped as byte-for-byte copies of the
+  storage-foundation ones (extended VolumeSnapshot with spec.mode), so both modules can apply the
+  identical definitions without conflict during the handover.
+- Added the D8SnapshotControllerModuleDeprecated alert that fires whenever the module is enabled,
+  asking the operator to disable it.

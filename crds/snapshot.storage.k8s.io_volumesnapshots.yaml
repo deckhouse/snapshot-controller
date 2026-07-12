@@ -8,7 +8,7 @@ metadata:
   name: volumesnapshots.snapshot.storage.k8s.io
   labels:
     heritage: deckhouse
-    module: snapshot-controller
+    module: storage-foundation
 spec:
   group: snapshot.storage.k8s.io
   names:
@@ -87,10 +87,29 @@ spec:
               Desired characteristics of a snapshot requested by a user.
               More info: https://kubernetes.io/docs/concepts/storage/volume-snapshots#volumesnapshots
             properties:
+              mode:
+                default: Capture
+                description: |-
+                  mode selects how this VolumeSnapshot obtains its content and is immutable once set.
+                  Capture (default): dynamic CSI snapshot from spec.source. Import: the data artifact is
+                  produced by a DataImport in the same namespace (reverse-lookup by DataImport.spec.snapshotRef);
+                  spec.source is omitted (required only when mode != Import) and the upstream
+                  snapshot-controller does not reconcile such a VolumeSnapshot - the state-snapshotter
+                  common controller binds it (sets status).
+                  Deckhouse extension: parity with spec.mode on every other state-snapshotter snapshot kind.
+                enum:
+                - Capture
+                - Import
+                type: string
+                x-kubernetes-validations:
+                - message: mode is immutable
+                  rule: self == oldSelf
               source:
                 description: |-
                   source specifies where a snapshot will be created from.
-                  May be empty for restore intent (backup controller sets volumeSnapshotContentName after restore).
+                  Required unless mode is Import (an import VolumeSnapshot omits it - the data artifact
+                  comes from a DataImport; symmetry with the other snapshot kinds).
+                  May be empty: restore intent (backup controller sets volumeSnapshotContentName after restore).
                   Otherwise exactly one of persistentVolumeClaimName or volumeSnapshotContentName must be set.
                   Immutable after creation (except one-shot set of volumeSnapshotContentName from empty).
                 properties:
@@ -122,12 +141,10 @@ spec:
                   rule: '!has(oldSelf.persistentVolumeClaimName) || has(self.persistentVolumeClaimName)'
                 - message: volumeSnapshotContentName is required once set
                   rule: '!has(oldSelf.volumeSnapshotContentName) || has(self.volumeSnapshotContentName)'
-                # Allow empty source (restore intent) or exactly one of volumeSnapshotContentName and persistentVolumeClaimName
-                - message: source must be empty (restore intent) or exactly one of volumeSnapshotContentName and persistentVolumeClaimName must be set
+                # Allow empty source (restore intent / import mode) or at most one of persistentVolumeClaimName, volumeSnapshotContentName
+                - message: source must be empty (restore intent / import mode) or exactly one of persistentVolumeClaimName and volumeSnapshotContentName must be set
                   rule: >-
-                    (!has(self.volumeSnapshotContentName) && !has(self.persistentVolumeClaimName))
-                    || (has(self.volumeSnapshotContentName) && !has(self.persistentVolumeClaimName))
-                    || (!has(self.volumeSnapshotContentName) && has(self.persistentVolumeClaimName))
+                    [has(self.persistentVolumeClaimName), has(self.volumeSnapshotContentName)].filter(x, x).size() <= 1
               volumeSnapshotClassName:
                 description: |-
                   Name of the VolumeSnapshotClass requested by the VolumeSnapshot.
@@ -145,9 +162,18 @@ spec:
                 - message: volumeSnapshotClassName must not be the empty string when
                     set
                   rule: size(self) > 0
-            required:
-            - source
             type: object
+            x-kubernetes-validations:
+            # Symmetry with every other snapshot kind: source is a Capture-family concern. An import
+            # VolumeSnapshot omits it entirely (the data artifact comes from a DataImport); everything
+            # else (dynamic capture, pre-provisioned, restore intent with an empty source) must carry it.
+            - message: source is required unless mode is Import
+              rule: >-
+                (has(self.mode) && self.mode == 'Import') || has(self.source)
+            # Import mode carries no CSI source: absent entirely, or empty if a typed client serialized it.
+            - message: an import-mode VolumeSnapshot (mode = Import) must have no CSI source
+              rule: >-
+                !has(self.mode) || self.mode != 'Import' || !has(self.source) || (!has(self.source.persistentVolumeClaimName) && !has(self.source.volumeSnapshotContentName))
           status:
             description: |-
               Current information of a snapshot.
@@ -155,6 +181,13 @@ spec:
               VolumeSnapshotContent objects is successful by ensuring both
               objects point at each other.
             properties:
+              boundSnapshotContentName:
+                description: |-
+                  Name of the cluster-scoped state-snapshotter SnapshotContent (state-snapshotter.deckhouse.io)
+                  that backs this VolumeSnapshot as a logical node in a snapshot tree. Written by the
+                  state-snapshotter common controller in addition to boundVolumeSnapshotContentName.
+                  Deckhouse extension.
+                type: string
               boundVolumeSnapshotContentName:
                 description: |-
                   Name of the VolumeSnapshotContent object to which this VolumeSnapshot
@@ -165,6 +198,179 @@ spec:
                   VolumeSnapshot and VolumeSnapshotContent objects is successful by ensuring
                   both objects point at each other before using this object.
                 type: string
+              captureState:
+                description: |-
+                  captureState collects the state-snapshotter capture signals mirrored onto this VolumeSnapshot
+                  when it is a domain snapshot node: commonController holds the core-written capture-leg latches,
+                  and domainSpecificController holds the domain-written planning refs and lifecycle. Written by the
+                  state-snapshotter controllers. Deckhouse extension.
+                properties:
+                  commonController:
+                    description: 'commonController holds the core-written capture-leg
+                      success latches. Single writer: state-snapshotter core.'
+                    properties:
+                      dataCaptured:
+                        description: |-
+                          dataCaptured is the data-leg success latch, declared only where a data line exists.
+                        type: boolean
+                      manifestCaptured:
+                        description: |-
+                          manifestCaptured is the manifest-leg success latch (declared on every capture node).
+                        type: boolean
+                      subtreeManifestsPersisted:
+                        description: |-
+                          subtreeManifestsPersisted is a core-written mirror of the bound SnapshotContent's recursive
+                          "this node and all descendants archived their manifests" latch. Monotonic (false -> true).
+                        type: boolean
+                      subtreePlanned:
+                        description: |-
+                          subtreePlanned is a core-computed monotonic recursive latch: true once this node reached
+                          capture barrier 1 (domainSpecificController.phase >= Planned) and every direct child's own
+                          subtreePlanned is true (the whole subtree finished planning). Domains only read it.
+                          Monotonic (false -> true).
+                        type: boolean
+                    type: object
+                  domainSpecificController:
+                    description: 'domainSpecificController holds the domain-written
+                      planning refs and lifecycle. Single writer: domain (SDK).'
+                    properties:
+                      excludedRefs:
+                        description: |-
+                          excludedRefs are the domain's direct exclusion vetoes at this node (the source objects it
+                          dropped via the exclude label while enumerating its children).
+                        items:
+                          description: |-
+                            An excluded source object reference ({apiVersion,kind,name}); namespace is implicit
+                            (the snapshot's namespace).
+                          properties:
+                            apiVersion:
+                              type: string
+                            kind:
+                              type: string
+                            name:
+                              type: string
+                          required:
+                          - apiVersion
+                          - kind
+                          - name
+                          type: object
+                        type: array
+                        x-kubernetes-list-type: atomic
+                      manifestCaptureRequestName:
+                        description: manifestCaptureRequestName is the temporary MCR
+                          owned by the domain node while own-scope capture runs.
+                        type: string
+                      message:
+                        description: message is a human-readable detail for phase=Failed.
+                        type: string
+                      phase:
+                        description: phase is the domain lifecycle barrier (Planning|Planned|Finished|Failed).
+                        enum:
+                        - Planning
+                        - Planned
+                        - Finished
+                        - Failed
+                        type: string
+                      reason:
+                        description: reason is a short, machine-readable reason for
+                          phase=Failed (free-form domain string).
+                        type: string
+                      volumeCaptureRequestName:
+                        description: volumeCaptureRequestName is the temporary VCR
+                          owned by a data-leaf domain node while the data leg runs.
+                        type: string
+                    type: object
+                type: object
+              childrenSnapshotRefs:
+                description: |-
+                  childrenSnapshotRefs are the direct child snapshot edges when this VolumeSnapshot participates
+                  in a snapshot tree. A VolumeSnapshot is a data leaf, so this is normally empty; kept for
+                  uniformity across snapshot kinds. Deckhouse extension.
+                items:
+                  description: |-
+                    A child snapshot object reference ({apiVersion,kind,name}) in the run tree; namespace is
+                    implicit (the parent Snapshot's namespace).
+                  properties:
+                    apiVersion:
+                      type: string
+                    kind:
+                      type: string
+                    name:
+                      type: string
+                  required:
+                  - apiVersion
+                  - kind
+                  - name
+                  type: object
+                type: array
+                x-kubernetes-list-map-keys:
+                - apiVersion
+                - kind
+                - name
+                x-kubernetes-list-type: map
+              conditions:
+                description: |-
+                  conditions report the state-snapshotter protocol readiness (conditions[Ready] is the single
+                  user-facing condition derived by the core), distinct from the CSI readyToUse binding signal.
+                  Written by the state-snapshotter core. Deckhouse extension.
+                items:
+                  description: Condition contains details for one aspect of the current
+                    state of this API Resource.
+                  properties:
+                    lastTransitionTime:
+                      description: |-
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: |-
+                        message is a human readable message indicating details about the transition.
+                        This may be an empty string.
+                      maxLength: 32768
+                      type: string
+                    observedGeneration:
+                      description: |-
+                        observedGeneration represents the .metadata.generation that the condition was set based upon.
+                        For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                        with respect to the current state of the instance.
+                      format: int64
+                      minimum: 0
+                      type: integer
+                    reason:
+                      description: |-
+                        reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                        Producers of specific condition types may define expected values and meanings for this field,
+                        and whether the values are considered a guaranteed API.
+                        The value should be a CamelCase string.
+                        This field may not be empty.
+                      maxLength: 1024
+                      minLength: 1
+                      pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                      type: string
+                    status:
+                      description: status of the condition, one of True, False, Unknown.
+                      enum:
+                      - "True"
+                      - "False"
+                      - Unknown
+                      type: string
+                    type:
+                      description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                      maxLength: 316
+                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+                x-kubernetes-list-map-keys:
+                - type
+                x-kubernetes-list-type: map
               creationTime:
                 description: |-
                   Timestamp when the point-in-time snapshot is taken by the underlying
@@ -177,6 +383,71 @@ spec:
                   If not specified, the creation time of the snapshot is unknown.
                 format: date-time
                 type: string
+              data:
+                description: |-
+                  data is the self-contained data binding (source + artifact + volume metadata)
+                  mirrored from the backing state-snapshotter SnapshotContent.status.data, so d8
+                  resolves the captured-volume descriptor from this namespaced VolumeSnapshot
+                  alone. Written by the state-snapshotter common controller. Deckhouse extension.
+                properties:
+                  accessModes:
+                    description: Source PVC access modes (e.g. ReadWriteOnce).
+                    items:
+                      type: string
+                    type: array
+                  artifact:
+                    description: Durable data artifact (a VolumeSnapshotContent).
+                    properties:
+                      apiVersion:
+                        type: string
+                      kind:
+                        type: string
+                      name:
+                        type: string
+                      uid:
+                        type: string
+                    required:
+                    - apiVersion
+                    - kind
+                    - name
+                    type: object
+                  fsType:
+                    description: Source filesystem type (Filesystem volumes only).
+                    type: string
+                  size:
+                    description: Real allocated size of the captured volume (e.g. "10Gi").
+                    type: string
+                  source:
+                    description: Captured PersistentVolumeClaim source (uid is the volume identity).
+                    properties:
+                      apiVersion:
+                        type: string
+                      kind:
+                        type: string
+                      name:
+                        type: string
+                      namespace:
+                        type: string
+                      uid:
+                        type: string
+                    required:
+                    - apiVersion
+                    - kind
+                    - name
+                    type: object
+                  storageClassName:
+                    description: Source StorageClass of the captured volume.
+                    type: string
+                  volumeMode:
+                    description: Source volume mode (Block or Filesystem).
+                    enum:
+                    - Block
+                    - Filesystem
+                    type: string
+                required:
+                - artifact
+                - source
+                type: object
               error:
                 description: |-
                   Last observed error during snapshot creation, if any.
@@ -224,6 +495,31 @@ spec:
                   If not specified, the size is unknown.
                 pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                 x-kubernetes-int-or-string: true
+              sourceRef:
+                description: |-
+                  sourceRef is the full reference to the captured live source object (the source PVC),
+                  written by the state-snapshotter domain controller (PublishSnapshotSource). Self-contained for
+                  import-mode recreation. Deckhouse extension.
+                properties:
+                  apiVersion:
+                    type: string
+                  kind:
+                    type: string
+                  name:
+                    type: string
+                  namespace:
+                    description: Namespace of the source object (namespaced sources
+                      only).
+                    type: string
+                  uid:
+                    description: UID of the captured live source object (best-effort;
+                      used by d8-cli for import-mode recreation).
+                    type: string
+                required:
+                - apiVersion
+                - kind
+                - name
+                type: object
               volumeGroupSnapshotName:
                 description: |-
                   Name of the VolumeGroupSnapshot of which this VolumeSnapshot is a part.
@@ -303,6 +599,8 @@ spec:
                   May be empty for restore intent (backup controller sets volumeSnapshotContentName after restore).
                   Otherwise exactly one of persistentVolumeClaimName or volumeSnapshotContentName must be set.
                   Immutable after creation (except one-shot set of volumeSnapshotContentName from empty).
+                  Deprecated legacy version: carries NO Deckhouse fork fields (no spec.mode) and is never
+                  treated as a domain object; see the v1 schema.
                 properties:
                   persistentVolumeClaimName:
                     description: |-
