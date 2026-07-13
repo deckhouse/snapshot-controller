@@ -11,12 +11,13 @@ descriptions:
     Включает поддержку снимков для совместимых CSI-драйверов в кластере. Устарел:
     функциональность предоставляет модуль storage-foundation.
 requirements:
-  deckhouse: ">= 1.72"
-  modules:
-    # Present/enabled check, not a version floor: storage-foundation ships from main (no v1.0.0
-    # tag planned), so pin to ">= 0.0.0". On a dev build requirements are not enforced anyway; in
-    # prod this guarantees storage-foundation is available before this deprecated module activates.
-    storage-foundation: ">= 0.0.0"
+  # New d8 baseline (unified DataExport/DataImport group etc.). No storage-foundation requirement on
+  # purpose: this module must stay INDEPENDENTLY installable. A cluster that does NOT enable
+  # storage-foundation still gets a working snapshot-controller (its templates render whenever
+  # storage-foundation is absent) plus the deprecation alert nudging migration — rather than losing
+  # snapshot support. When storage-foundation IS enabled, the guard empties this module to just the
+  # alert, and storage-foundation owns the (byte-for-byte identical) CRDs.
+  deckhouse: ">= 1.76"
 accessibility:
   editions:
     _default:
