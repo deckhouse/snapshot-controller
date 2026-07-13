@@ -1,6 +1,0 @@
-Changes:
-- Removed the on-delete hook that stripped finalizers from VolumeSnapshot, VolumeSnapshotContent
-  and VolumeSnapshotClass resources when the module was disabled. Disabling the module no longer
-  touches these resources, which makes handing snapshot support over to the storage-foundation
-  module safe.
-- Removed the unused snapshot-validation-webhook certificate hook and its values schema.
