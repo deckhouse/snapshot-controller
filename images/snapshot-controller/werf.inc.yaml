@@ -75,3 +75,11 @@ import:
 imageSpec:
   config:
     entrypoint: ["/{{ $.ImageName }}"]
+
+{{- /*
+Attach an OpenVEX attestation to the snapshot-controller (external-snapshotter)
+image so trivy suppresses the unfixable golang.org/x/crypto/openpgp advisory
+(GO-2026-5932) reported against the driver binary. Predicate:
+/images/snapshot-controller/known_vulnerabilities.vex (per the "vex mitigation" template).
+*/ -}}
+{{- include "vex mitigation" (list $ $.ImageName) }}
