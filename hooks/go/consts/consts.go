@@ -20,23 +20,5 @@ const (
 	ModuleName      			string = "snapshotController"
 	ModuleNamespace 			string = "d8-snapshot-controller"
 	ModulePluralName			string = "snapshot-controller"
-	ValidatingWebhookCertCn   	string = "snapshot-validation-webhook"
 	WebhookCertCn   			string = "webhooks"
 )
-
-var AllowedProvisioners = []string{}
-
-var WebhookConfigurationsToDelete = []string{}
-
-var CRGVKsForFinalizerRemoval = []CRGVK{
-	{Group: "snapshot.storage.k8s.io", Version: "v1", Kind: "VolumeSnapshot", Namespaced: true},
-	{Group: "snapshot.storage.k8s.io", Version: "v1", Kind: "VolumeSnapshotContent", Namespaced: false},
-	{Group: "snapshot.storage.k8s.io", Version: "v1", Kind: "VolumeSnapshotClass", Namespaced: false},
-}
-
-type CRGVK struct {
-	Group      string
-	Version    string
-	Kind       string
-	Namespaced bool
-}
