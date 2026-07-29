@@ -1,7 +1,6 @@
 module github.com/deckhouse/snapshot-controller/images/webhooks
 
 go 1.26.5
-
 require (
 	github.com/deckhouse/sds-common-lib v0.5.0
 	github.com/sirupsen/logrus v1.9.3
