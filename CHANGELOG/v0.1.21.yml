@@ -1,0 +1,3 @@
+Changes:
+- Updating container-base images to v1.3.25, Go 1.26.5 and lib-helm to 1.72.13
+- Internal changes in module assembly
