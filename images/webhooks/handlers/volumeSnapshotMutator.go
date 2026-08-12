@@ -22,6 +22,9 @@ import (
 	"fmt"
 	"log/slog"
 
+	d8commonapi "github.com/deckhouse/sds-common-lib/api/v1alpha1"
+	"github.com/deckhouse/sds-common-lib/kubeclient"
+	"github.com/deckhouse/sds-common-lib/slogh"
 	snapshotv1 "github.com/kubernetes-csi/external-snapshotter/client/v6/apis/volumesnapshot/v1"
 	"github.com/slok/kubewebhook/v2/pkg/model"
 	kwhmutating "github.com/slok/kubewebhook/v2/pkg/webhook/mutating"
@@ -31,10 +34,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
-
-	d8commonapi "github.com/deckhouse/sds-common-lib/api/v1alpha1"
-	"github.com/deckhouse/sds-common-lib/kubeclient"
-	"github.com/deckhouse/sds-common-lib/slogh"
 )
 
 const (

@@ -17,11 +17,11 @@ limitations under the License.
 package consts
 
 const (
-	ModuleName      			string = "snapshotController"
-	ModuleNamespace 			string = "d8-snapshot-controller"
-	ModulePluralName			string = "snapshot-controller"
-	ValidatingWebhookCertCn   	string = "snapshot-validation-webhook"
-	WebhookCertCn   			string = "webhooks"
+	ModuleName              string = "snapshotController"
+	ModuleNamespace         string = "d8-snapshot-controller"
+	ModulePluralName        string = "snapshot-controller"
+	ValidatingWebhookCertCn string = "snapshot-validation-webhook"
+	WebhookCertCn           string = "webhooks"
 )
 
 var AllowedProvisioners = []string{}
