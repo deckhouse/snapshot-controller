@@ -8,7 +8,7 @@ metadata:
   name: volumesnapshotcontents.snapshot.storage.k8s.io
   labels:
     heritage: deckhouse
-    module: snapshot-controller
+    module: storage-foundation
 spec:
   group: snapshot.storage.k8s.io
   names:
@@ -87,7 +87,7 @@ spec:
 
                   - `Retain`: VolumeSnapshotContent and its physical snapshot on the underlying storage system are preserved.
                   - `Delete`: VolumeSnapshotContent and its physical snapshot on the underlying storage system are removed.
-                  
+
                   For dynamically provisioned snapshots, automatically filled by the
                   CSI snapshotter sidecar with the `DeletionPolicy` field defined in the corresponding
                   VolumeSnapshotClass.
@@ -158,7 +158,7 @@ spec:
                   this VolumeSnapshotContent name for the bidirectional binding to be valid.
                   For a pre-existing VolumeSnapshotContent object, name and namespace of the
                   VolumeSnapshot object **must be provided** for binding.
-                  Immutable after creation.                  
+                  Immutable after creation.
                 properties:
                   apiVersion:
                     description: |-
@@ -202,14 +202,13 @@ spec:
                 type: object
                 x-kubernetes-map-type: atomic
                 x-kubernetes-validations:
-                - message: both spec.volumeSnapshotRef.name and spec.volumeSnapshotRef.namespace
-                    must be set
-                  rule: has(self.name) && has(self.__namespace__)
+                - message: if spec.volumeSnapshotRef is set, both name and namespace must be specified together, or volumeSnapshotRef must be completely empty (VSC-only model)
+                  rule: '(has(self.name) && has(self.__namespace__) && self.name != "" && self.__namespace__ != "") || (!has(self.name) && !has(self.__namespace__))'
             required:
             - deletionPolicy
             - driver
             - source
-            - volumeSnapshotRef
+            # volumeSnapshotRef is optional to support VSC-only model (VSC without VolumeSnapshot)
             type: object
             x-kubernetes-validations:
             - message: sourceVolumeMode is required once set
@@ -364,7 +363,7 @@ spec:
                   CSI snapshotter sidecar with the `DeletionPolicy` field defined in the corresponding
                   VolumeSnapshotClass.
                   For pre-existing snapshots, users **must specify** when creating the
-                  VolumeSnapshotContent object.              
+                  VolumeSnapshotContent object.
                 enum:
                 - Delete
                 - Retain
@@ -404,7 +403,7 @@ spec:
                   this VolumeSnapshotContent name for the bidirectional binding to be valid.
                   For a pre-existing VolumeSnapshotContent object, name and namespace of the
                   VolumeSnapshot object **must be provided** for binding.
-                  Immutable after creation.                  
+                  Immutable after creation.
                 properties:
                   apiVersion:
                     description: |-
@@ -450,7 +449,7 @@ spec:
             - deletionPolicy
             - driver
             - source
-            - volumeSnapshotRef
+            # volumeSnapshotRef is optional to support VSC-only model (VSC without VolumeSnapshot)
             type: object
           status:
             description: |-

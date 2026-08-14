@@ -20,8 +20,6 @@ import (
 	"github.com/deckhouse/module-sdk/pkg/app"
 
 	_ "github.com/deckhouse/snapshot-controller/hooks/go/020-webhook-certs"
-	_ "github.com/deckhouse/snapshot-controller/hooks/go/030-remove-finalizers-on-module-delete"
-	_ "github.com/deckhouse/snapshot-controller/hooks/go/030-snapshot-validation-webhook-certs"
 )
 
 func main() {
