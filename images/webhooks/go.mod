@@ -1,6 +1,6 @@
 module github.com/deckhouse/snapshot-controller/images/webhooks
 
-go 1.26.5
+go 1.26.6
 
 require (
 	github.com/sirupsen/logrus v1.9.3
