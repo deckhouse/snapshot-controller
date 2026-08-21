@@ -2,6 +2,15 @@
 title: "Модуль snapshot-controller"
 ---
 
+{% alert level="warning" %}
+Модуль **устарел (deprecated)**: поддержку снимков CSI теперь предоставляет модуль
+`storage-foundation`. Новые кластеры получают её из `storage-foundation` (автовключение);
+`snapshot-controller` больше не включается автоматически ни в одном бандле. Пока
+`storage-foundation` включён, этот модуль ничего не разворачивает и только выставляет алерт
+`D8SnapshotControllerModuleDeprecated` с просьбой выключить его. Выключите `snapshot-controller`
+и используйте `storage-foundation`.
+{% endalert %}
+
 Модуль `snapshot-controller` включает поддержку снимков для совместимых CSI-драйверов в кластере Kubernetes.
 
 Список CSI-драйверов в Deckhouse Kubernetes Platform, поддерживающих работу со снимками:

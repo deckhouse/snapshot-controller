@@ -2,6 +2,14 @@
 title: "The snapshot-controller module"
 ---
 
+{% alert level="warning" %}
+The module is **deprecated**: CSI snapshot support is now provided by the `storage-foundation`
+module. New clusters get it from `storage-foundation` (auto-enabled); `snapshot-controller` is no
+longer auto-enabled in any bundle. While `storage-foundation` is enabled, this module deploys
+nothing and only fires the `D8SnapshotControllerModuleDeprecated` alert asking to disable it.
+Disable `snapshot-controller` and use `storage-foundation` instead.
+{% endalert %}
+
 The `snapshot-controller` module enables snapshot support for compatible CSI-drivers in the Kubernetes cluster.
 
 List of CSI-drivers in Deckhouse Kubernetes Platform that support snapshots:
