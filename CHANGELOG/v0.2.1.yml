@@ -1,0 +1,3 @@
+Changes:
+  - Auto-enablement in the Default and Managed bundles is back. Without it, clusters where the module is enabled by default rather than through a ModuleConfig did not receive v0.2.0.
+  - The module's deprecation is not reversed — it is still indicated by the Deprecated stage and an alert.
