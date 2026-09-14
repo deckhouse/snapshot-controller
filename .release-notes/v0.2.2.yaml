@@ -1,0 +1,23 @@
+date: "2026-09-14"
+
+summary: "A maintenance release: the module is rebuilt on newer base images with a newer Go toolchain and Helm library, with no change to its behaviour."
+
+highlights:
+  - "Every image of the module is rebuilt on the v2.1.17 base images with Go 1.27.1. Nothing in the module's behaviour, resources or settings changes."
+
+dependencies:
+  - name: base images
+    from: "v2.1.7"
+    to: "v2.1.17"
+    notes: "Rebuilds every image of the module on the current base images."
+  - name: Go
+    from: "1.27.0"
+    to: "1.27.1"
+    notes: "The toolchain the controller, the webhooks and the hooks are built with."
+  - name: deckhouse_lib_helm
+    from: "1.72.18"
+    to: "1.72.22"
+    notes: "The Helm library the module's templates are rendered with; the templates themselves are unchanged."
+
+upgrade_notes:
+  - "The update needs nothing done by hand. Resources, module settings and existing snapshots are untouched, and the pods are only restarted with the rebuilt images."
