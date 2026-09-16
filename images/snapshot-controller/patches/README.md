@@ -32,3 +32,16 @@ exposed via `NativeTypes` and `ParseStructTag`) and is fixed only in 0.29.0,
 whose `ext.TwoVarComprehensions` signature no `k8s.io/apiserver` release below
 v0.36 compiles against, so the k8s libraries move v0.35.0 -> v0.36.3 in the
 same patch.
+
+## 005-fix-cve-grpc-x-crypto.patch
+
+Raises `google.golang.org/grpc` v1.82.1 -> **v1.83.2** for **CVE-2026-84304**
+and **CVE-2026-84303** (fixed in 1.83.1) and **CVE-2026-84445** (fixed in
+1.83.2), and `golang.org/x/crypto` v0.53.0 -> **v0.57.0** for
+**CVE-2026-56854** (the x/crypto/ssh source-address authentication bypass),
+**CVE-2026-56855** and **CVE-2026-78662**. These were the Trivy findings
+against the `snapshot-controller` binary.
+
+Applied last, after 004; `go.mod`/`go.sum` only -- the build drops upstream
+`vendor/` and resolves from the proxy. The image's OpenVEX document moves to
+the new x/crypto purl with it.
