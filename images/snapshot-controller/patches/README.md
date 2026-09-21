@@ -45,3 +45,17 @@ against the `snapshot-controller` binary.
 Applied last, after 004; `go.mod`/`go.sum` only -- the build drops upstream
 `vendor/` and resolves from the proxy. The image's OpenVEX document moves to
 the new x/crypto purl with it.
+
+## 006-fix-cve-otel-1.45.patch
+
+Raises the six `go.opentelemetry.io/otel*` modules to **v1.45.0** for
+**CVE-2026-81870**, the Trivy finding against the `snapshot-controller` binary:
+the core, `metric`, `sdk` and `trace` stood at v1.44.0 after 002 and the two
+OTLP trace exporters at v1.43.0. OpenTelemetry-Go releases the whole set
+together, so all six move to the same tag.
+
+Applied last, after 005; `go.mod`/`go.sum` only -- the build drops upstream
+`vendor/` and resolves from the proxy. `go.opentelemetry.io/proto/otlp`,
+`grpc-gateway`, `genproto` and `go-logr/logr` follow as transitive
+requirements. `golang.org/x/crypto`, the version the image's OpenVEX document
+names, is untouched.
