@@ -209,6 +209,20 @@ spec:
                     description: 'commonController holds the core-written capture-leg
                       success latches. Single writer: state-snapshotter core.'
                     properties:
+                      childSubtreesManifestsPersisted:
+                        description: |-
+                          childSubtreesManifestsPersisted is a core-written latch: true once the subtrees of all declared
+                          direct children of this node are fully persisted (every descendant beneath each direct child has
+                          durably archived its manifests). It excludes this node's own manifests, which manifestCaptured
+                          tracks; a childless node is vacuously persisted. Eager-declared false at capture barrier 1.
+                          Monotonic (false -> true).
+                        type: boolean
+                      childrenSettled:
+                        description: |-
+                          childrenSettled is a core-computed monotonic latch: true once every direct child of this node
+                          has gone terminal, captured or failed alike. A completeness signal orthogonal to success;
+                          domains only read it. nil until computed or for a leaf. Monotonic (false -> true).
+                        type: boolean
                       dataCaptured:
                         description: |-
                           dataCaptured is the data-leg success latch, declared only where a data line exists.
@@ -216,11 +230,6 @@ spec:
                       manifestCaptured:
                         description: |-
                           manifestCaptured is the manifest-leg success latch (declared on every capture node).
-                        type: boolean
-                      subtreeManifestsPersisted:
-                        description: |-
-                          subtreeManifestsPersisted is a core-written mirror of the bound SnapshotContent's recursive
-                          "this node and all descendants archived their manifests" latch. Monotonic (false -> true).
                         type: boolean
                       subtreePlanned:
                         description: |-
