@@ -1,3 +1,32 @@
+{{- if eq (include "snapshot-controller.rbacv2_new_scheme" .) "true" }}
+{{- if not (.Values.global.enabledModules | has "storage-foundation") }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    heritage: deckhouse
+    module: snapshot-controller
+    rbac.deckhouse.io/aggregate-to-namespace-as: viewer
+    rbac.deckhouse.io/kind: capability
+    rbac.deckhouse.io/capability: "namespace-capability.snapshot-controller.view"
+    rbac.deckhouse.io/scope: namespace
+  name: d8:namespace-capability:snapshot-controller:view
+  annotations:
+    en.meta.deckhouse.io/title: "Module snapshot-controller: view"
+    ru.meta.deckhouse.io/title: "Модуль snapshot-controller: просмотр"
+    en.meta.deckhouse.io/description: "Read-only access to snapshot-controller resources in a namespace."
+    ru.meta.deckhouse.io/description: "Доступ только на чтение к ресурсам модуля snapshot-controller в пространстве имён."
+rules:
+- apiGroups:
+  - snapshot.storage.k8s.io
+  resources:
+  - volumesnapshots
+  verbs:
+  - get
+  - list
+  - watch
+{{- end }}
+{{- else }}
 {{- if not (.Values.global.enabledModules | has "storage-foundation") }}
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
@@ -17,4 +46,5 @@ rules:
   - get
   - list
   - watch
+{{- end }}
 {{- end }}
