@@ -2,60 +2,27 @@
 
 ## 001-fix-cve.patch
 
-Fix CVE
+Fix CVE reported by trivy against the `snapshot-controller` binary built from
+external-snapshotter v8.6.0:
 
-## 002-fix-cve-otel-sdk.patch
+- `google.golang.org/grpc` v1.81.1 -> **v1.83.2** for GHSA-hrxh-6v49-42gf
+  (fixed in 1.82.1), **CVE-2026-84303** and **CVE-2026-84304** (fixed in
+  1.83.1) and **CVE-2026-84445** (fixed in 1.83.2);
+- `golang.org/x/crypto` v0.52.0 -> **v0.56.0** for **CVE-2026-56854**,
+  **CVE-2026-56855** and **CVE-2026-78662**;
+- `golang.org/x/text` v0.37.0 -> v0.39.0 or later for **CVE-2026-56852**
+  (resolved to v0.41.0 by the grpc requirements);
+- `golang.org/x/net` v0.54.0 -> **v0.58.0**, the minimum grpc v1.83.2
+  requires, which also covers CVE-2026-25680, CVE-2026-25681, CVE-2026-27136,
+  CVE-2026-39821, CVE-2026-42502, CVE-2026-42506 and CVE-2026-46600;
+- `github.com/google/cel-go` v0.28.1 -> **v0.29.0** for GHSA-gcjh-h69q-9w9g;
+- the six `go.opentelemetry.io/otel*` modules (core, `metric`, `sdk`,
+  `trace` and the two OTLP trace exporters) v1.43.0 -> **v1.45.0** for
+  **CVE-2026-81870**. OpenTelemetry-Go releases the whole set together, so
+  all six move to the same tag.
 
-Fix CVE-2026-39883 in `go.opentelemetry.io/otel/sdk` by upgrading
-OpenTelemetry-Go modules from v1.40.0 to v1.43.0. The vulnerability is
-a PATH hijacking flaw on BSD/Solaris caused by the `kenv` command not
-using an absolute path.
-
-## 003-fix-cve-golang-x.patch
-
-Fix CVE in the `golang.org/x` modules reported by trivy by upgrading
-`golang.org/x/net` v0.52.0 -> v0.56.0 (CVE-2026-46600, a panic in
-`golang.org/x/net/dns/dnsmessage` on an invalid SVCB/HTTPS RR) and
-`golang.org/x/text` v0.35.0 -> v0.39.0 (CVE-2026-56852, an infinite loop
-on invalid input). This pulls the transitive `golang.org/x/crypto`
-v0.53.0, `golang.org/x/sys` v0.46.0, `golang.org/x/sync` v0.21.0 and
-`golang.org/x/term` v0.44.0 bumps.
-
-## 004-fix-cve-grpc-cel-go.patch
-
-Fix CVE in `google.golang.org/grpc` and `github.com/google/cel-go` reported by
-trivy against the `snapshot-controller` binary. `google.golang.org/grpc`
-v1.80.0 -> v1.82.1 (GHSA-hrxh-6v49-42gf, HIGH: xDS RBAC and HTTP/2
-vulnerabilities). `github.com/google/cel-go` is vulnerable in
-`>= 0.22.0, <= 0.28.1` (GHSA-gcjh-h69q-9w9g, MEDIUM: private JSON fields
-exposed via `NativeTypes` and `ParseStructTag`) and is fixed only in 0.29.0,
-whose `ext.TwoVarComprehensions` signature no `k8s.io/apiserver` release below
-v0.36 compiles against, so the k8s libraries move v0.35.0 -> v0.36.3 in the
-same patch.
-
-## 005-fix-cve-grpc-x-crypto.patch
-
-Raises `google.golang.org/grpc` v1.82.1 -> **v1.83.2** for **CVE-2026-84304**
-and **CVE-2026-84303** (fixed in 1.83.1) and **CVE-2026-84445** (fixed in
-1.83.2), and `golang.org/x/crypto` v0.53.0 -> **v0.57.0** for
-**CVE-2026-56854** (the x/crypto/ssh source-address authentication bypass),
-**CVE-2026-56855** and **CVE-2026-78662**. These were the Trivy findings
-against the `snapshot-controller` binary.
-
-Applied last, after 004; `go.mod`/`go.sum` only -- the build drops upstream
-`vendor/` and resolves from the proxy. The image's OpenVEX document moves to
-the new x/crypto purl with it.
-
-## 006-fix-cve-otel-1.45.patch
-
-Raises the six `go.opentelemetry.io/otel*` modules to **v1.45.0** for
-**CVE-2026-81870**, the Trivy finding against the `snapshot-controller` binary:
-the core, `metric`, `sdk` and `trace` stood at v1.44.0 after 002 and the two
-OTLP trace exporters at v1.43.0. OpenTelemetry-Go releases the whole set
-together, so all six move to the same tag.
-
-Applied last, after 005; `go.mod`/`go.sum` only -- the build drops upstream
-`vendor/` and resolves from the proxy. `go.opentelemetry.io/proto/otlp`,
-`grpc-gateway`, `genproto` and `go-logr/logr` follow as transitive
-requirements. `golang.org/x/crypto`, the version the image's OpenVEX document
-names, is untouched.
+`go.mod`/`go.sum` only -- the build drops upstream `vendor/` and resolves from
+the proxy. `golang.org/x/sys`, `x/sync`, `x/term`, `genproto`,
+`go.opentelemetry.io/proto/otlp` and `go-logr/logr` follow as transitive
+requirements. The image's OpenVEX document names the resulting
+`golang.org/x/crypto` version.
