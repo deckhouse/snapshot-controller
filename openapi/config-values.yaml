@@ -1,5 +1,15 @@
 type: object
 properties:
+  logLevel:
+    type: string
+    enum:
+      - ERROR
+      - WARN
+      - INFO
+      - DEBUG
+      - TRACE
+    description: Logging level for the module components.
+    default: INFO
   highAvailability:
     type: boolean
     x-examples: [true, false]

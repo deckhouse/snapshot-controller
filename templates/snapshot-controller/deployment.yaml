@@ -72,7 +72,7 @@ spec:
       - name: snapshot-controller
         {{- include "helm_lib_module_container_security_context_pss_restricted_flexible" (dict "ro" true "seccompProfile" true "uid" 65534) | nindent 8 }}
         args:
-        - --v=5
+        - --v={{ include "snapshot-controller.klog_verbosity" . }}
         - --leader-election=true
         - --http-endpoint=127.0.0.1:8080
         image: {{ include "helm_lib_module_image" (list . "snapshotController") }}
