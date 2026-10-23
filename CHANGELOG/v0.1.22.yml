@@ -1,5 +1,5 @@
 Changes:
-  - Fixed vulnerabilities in snapshot-controller image dependencies: grpc (GHSA-hrxh-6v49-42gf) and cel-go (GHSA-gcjh-h69q-9w9g)
-  - Bugfix: VerticalPodAutoscaler CRD presence check has been moved to helm_lib_api_version_exists - the resource is no longer skipped if the CRD is installed but not yet included in discovery
+  - "Fixed vulnerabilities in snapshot-controller image dependencies: grpc (GHSA-hrxh-6v49-42gf) and cel-go (GHSA-gcjh-h69q-9w9g)"
+  - "Bugfix: VerticalPodAutoscaler CRD presence check has been moved to helm_lib_api_version_exists - the resource is no longer skipped if the CRD is installed but not yet included in discovery"
   - The release image includes the crds, docs and openapi directories
   - Updating container-base images to v2.1.2, Go 1.26.6 and lib-helm to 1.72.14

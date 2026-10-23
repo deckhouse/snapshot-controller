@@ -1,5 +1,5 @@
 Изменения:
-  - Исправление уязвимостей в зависимостях образа snapshot-controller: grpc (GHSA-hrxh-6v49-42gf) и cel-go (GHSA-gcjh-h69q-9w9g)
-  - Исправление: проверка наличия CRD VerticalPodAutoscaler переведена на helm_lib_api_version_exists — ресурс больше не пропускается, если CRD установлен, но ещё не попал в discovery
+  - "Исправление уязвимостей в зависимостях образа snapshot-controller: grpc (GHSA-hrxh-6v49-42gf) и cel-go (GHSA-gcjh-h69q-9w9g)"
+  - "Исправление: проверка наличия CRD VerticalPodAutoscaler переведена на helm_lib_api_version_exists — ресурс больше не пропускается, если CRD установлен, но ещё не попал в discovery"
   - В релизный образ включены каталоги crds, docs и openapi
   - Обновление базовых образов container-base до v2.1.2, Go 1.26.6 и lib-helm до 1.72.14
