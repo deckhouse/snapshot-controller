@@ -7,7 +7,6 @@ metadata:
   labels:
     heritage: deckhouse
     module: snapshot-controller
-    rbac.deckhouse.io/aggregate-to-infrastructure-as: manager
     rbac.deckhouse.io/aggregate-to-storage-as: manager
     rbac.deckhouse.io/kind: capability
     rbac.deckhouse.io/capability: "system-capability.snapshot-controller.edit"
