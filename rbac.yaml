@@ -1,0 +1,241 @@
+# The module RBAC declaration, read from the RBAC objects the module renders. Review it: every TODO is a
+# decision "dmt lint" reports; then run "dmt lint --linter rbac --fix" to bring the templates in line with it.
+# Objects rendered only under values other than the defaults are not here: lint with --values-file (or
+# --matrix) before the first --fix of the templates if the module has such templates, and declare them with when.
+#
+# Notes:
+# - ServiceAccount webhooks mounted its token (automountServiceAccountToken unset or true); kept as true -- set false once its pods mount the token themselves
+#
+# Not described by the declaration (stays hand-written, as it is):
+# - Role and RoleBinding access-to-snapshot-controller (templates/rbac-to-us.yaml): the module renders nothing while storage-foundation is enabled, its namespace included, and prometheusAccess would write the Role for every value
+apiVersion: rbac.deckhouse.io/v1alpha1
+resources:
+  - group: snapshot.storage.k8s.io
+    resource: volumesnapshotclasses
+    reason: 'the module renders nothing, its roles included, while storage-foundation is enabled, which then grants the snapshot API itself; resources[] have no when, so the roles keep that condition in the templates and .dmtlint.yaml leaves them out of sync'
+    system:
+      manager:
+        - create
+        - delete
+        - deletecollection
+        - patch
+        - update
+      viewer:
+        - get
+        - list
+        - watch
+    legacy:
+      ClusterEditor:
+        - create
+        - delete
+        - deletecollection
+        - get
+        - list
+        - patch
+        - update
+        - watch
+      User:
+        - get
+        - list
+        - watch
+  - group: snapshot.storage.k8s.io
+    resource: volumesnapshotcontents
+    reason: 'the module renders nothing, its roles included, while storage-foundation is enabled, which then grants the snapshot API itself; resources[] have no when, so the roles keep that condition in the templates and .dmtlint.yaml leaves them out of sync'
+    system:
+      manager:
+        - create
+        - delete
+        - deletecollection
+        - patch
+        - update
+      viewer:
+        - get
+        - list
+        - watch
+    legacy:
+      ClusterEditor:
+        - create
+        - delete
+        - deletecollection
+        - get
+        - list
+        - patch
+        - update
+        - watch
+  - group: snapshot.storage.k8s.io
+    resource: volumesnapshots
+    reason: 'the module renders nothing, its roles included, while storage-foundation is enabled, which then grants the snapshot API itself; resources[] have no when, so the roles keep that condition in the templates and .dmtlint.yaml leaves them out of sync'
+    namespace:
+      manager:
+        - create
+        - delete
+        - deletecollection
+        - patch
+        - update
+      viewer:
+        - get
+        - list
+        - watch
+    legacy:
+      ClusterEditor:
+        - create
+        - delete
+        - deletecollection
+        - patch
+        - update
+      User:
+        - get
+        - list
+        - watch
+serviceAccounts:
+  - name: snapshot-controller
+    path: snapshot-controller
+    when: not (.Values.global.enabledModules | has "storage-foundation")
+    labels:
+      app: snapshot-controller
+    namespaceRules:
+      - apiGroups:
+          - coordination.k8s.io
+        resources:
+          - leases
+        verbs:
+          - get
+          - watch
+          - list
+          - delete
+          - update
+          - create
+    roleName: snapshot-controller:snapshot-controller:leader-election
+    bindClusterRoles:
+      - d8:rbac-proxy
+    extraClusterRoles:
+      - name: runner
+        rules:
+          - apiGroups:
+              - ""
+            resources:
+              - persistentvolumes
+            verbs:
+              - get
+              - list
+              - watch
+          - apiGroups:
+              - ""
+            resources:
+              - persistentvolumeclaims
+            verbs:
+              - get
+              - list
+              - watch
+              - update
+          - apiGroups:
+              - storage.k8s.io
+            resources:
+              - storageclasses
+            verbs:
+              - get
+              - list
+              - watch
+          - apiGroups:
+              - ""
+            resources:
+              - events
+            verbs:
+              - list
+              - watch
+              - create
+              - update
+              - patch
+          - apiGroups:
+              - snapshot.storage.k8s.io
+            resources:
+              - volumesnapshotclasses
+            verbs:
+              - get
+              - list
+              - watch
+          - apiGroups:
+              - snapshot.storage.k8s.io
+            resources:
+              - volumesnapshotcontents
+            verbs:
+              - create
+              - get
+              - list
+              - watch
+              - update
+              - patch
+              - delete
+          - apiGroups:
+              - snapshot.storage.k8s.io
+            resources:
+              - volumesnapshotcontents/status
+            verbs:
+              - patch
+          - apiGroups:
+              - snapshot.storage.k8s.io
+            resources:
+              - volumesnapshots
+            verbs:
+              - get
+              - list
+              - watch
+              - update
+              - patch
+          - apiGroups:
+              - snapshot.storage.k8s.io
+            resources:
+              - volumesnapshots/status
+            verbs:
+              - update
+              - patch
+  - name: webhooks
+    path: webhooks
+    when: not (.Values.global.enabledModules | has "storage-foundation")
+    labels:
+      app: webhooks
+    clusterRules:
+      - apiGroups:
+          - storage.k8s.io
+        resources:
+          - storageclasses
+        verbs:
+          - get
+          - list
+      - apiGroups:
+          - ""
+        resources:
+          - persistentvolumeclaims
+        verbs:
+          - get
+          - list
+      - apiGroups:
+          - snapshot.storage.k8s.io
+        resources:
+          - volumesnapshotclasses
+        verbs:
+          - get
+          - list
+    automountServiceAccountToken: true
+access:
+  - name: admin-kubeconfig
+    subjects:
+      - kind: Group
+        name: kubeadm:cluster-admins
+    when: not (.Values.global.enabledModules | has "storage-foundation")
+    clusterRules:
+      - apiGroups:
+          - snapshot.storage.k8s.io
+        resources:
+          - volumesnapshotclasses
+          - volumesnapshotcontents
+          - volumesnapshots
+        verbs:
+          - get
+          - list
+          - watch
+          - create
+          - delete
+          - deletecollection
+          - patch
+          - update
