@@ -1,6 +1,6 @@
 module github.com/deckhouse/snapshot-controller/images/webhooks
 
-go 1.27.3
+go 1.27.4
 require (
 	github.com/deckhouse/sds-common-lib v0.10.0
 	github.com/kubernetes-csi/external-snapshotter/client/v6 v6.3.0

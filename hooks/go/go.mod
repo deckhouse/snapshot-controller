@@ -1,7 +1,6 @@
 module github.com/deckhouse/snapshot-controller/hooks/go
 
-go 1.27.3
-
+go 1.27.4
 require github.com/deckhouse/module-sdk v0.13.1
 
 require (
