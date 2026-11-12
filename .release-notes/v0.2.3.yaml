@@ -1,0 +1,40 @@
+date: "2026-11-12"
+
+summary: "The module gets a log level setting and quieter default logs, the DKP 1.78 role model, a VolumeSnapshot CRD that keeps the state-snapshotter status fields, and external-snapshotter v8.6.0."
+
+highlights:
+  - "The new `logLevel` setting controls how much snapshot-controller logs. By default it now runs at `INFO` (klog `--v=2`) instead of the fixed debug level `--v=5`, so an idle cluster no longer fills the logs with per-object messages."
+  - "On DKP 1.78 and later the module ships the `d8:system-capability:snapshot-controller:{view,edit}` and `d8:namespace-capability:snapshot-controller:{view,edit}` roles of the new role model."
+
+new_features:
+  - "The `logLevel` module setting (`ERROR`, `WARN`, `INFO`, `DEBUG`, `TRACE`, `INFO` by default) sets the klog verbosity of snapshot-controller: `ERROR` 0, `WARN` 1, `INFO` 2, `DEBUG` 4, `TRACE` 5."
+  - "On DKP 1.78 and later the module renders the `d8:system-capability:snapshot-controller:view` and `d8:system-capability:snapshot-controller:edit` roles, which give read or write access to the `snapshot-controller` ModuleConfig and to `VolumeSnapshotClass` and `VolumeSnapshotContent`, and the `d8:namespace-capability:snapshot-controller:view` and `d8:namespace-capability:snapshot-controller:edit` roles for `VolumeSnapshot` in namespaces. They aggregate into the storage subsystem. Clusters below DKP 1.78 keep the `manage` and `use` roles they had."
+
+fixes:
+  - "The `VolumeSnapshot` CRD of the module now declares the status latches `childSubtreesManifestsPersisted` and `childrenSettled` that state-snapshotter writes, instead of the old `subtreeManifestsPersisted`. Before, the API server discarded these fields, because the schema did not know them."
+
+security:
+  - "The images of the module are rebuilt with dependency versions that fix the vulnerabilities reported by the scanner, among them `golang.org/x/net` v0.62.0, `golang.org/x/crypto` v0.58.0, `google.golang.org/grpc` v1.83.2 and OpenTelemetry v1.45.0; `docker/distribution` is no longer part of the hooks."
+
+upgrade_notes:
+  - "The update needs nothing done by hand. snapshot-controller restarts with `--v=2`; to get the previous debug output back, set `logLevel: TRACE` in the `snapshot-controller` ModuleConfig."
+  - "As before, the module renders nothing while storage-foundation is enabled, so on such clusters the update changes nothing."
+
+dependencies:
+  - name: external-snapshotter
+    from: "v8.5.0"
+    to: "v8.6.0"
+    changelog_url: "https://github.com/kubernetes-csi/external-snapshotter/releases/tag/v8.6.0"
+    notes: "The upstream snapshot-controller the module ships."
+  - name: base images
+    from: "v2.1.17"
+    to: "v4.0.12"
+    notes: "Every image of the module is rebuilt on container base v4 and distroless final images."
+  - name: Go
+    from: "1.27.1"
+    to: "1.27.4"
+    notes: "The toolchain the controller, the webhooks and the hooks are built with."
+  - name: deckhouse_lib_helm
+    from: "1.72.22"
+    to: "1.72.34"
+    notes: "The Helm library the module's templates are rendered with."

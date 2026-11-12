@@ -1,0 +1,40 @@
+date: "2026-11-12"
+
+summary: "В модуле появилась настройка уровня логов и более тихие логи по умолчанию, роли ролевой модели DKP 1.78, CRD `VolumeSnapshot`, который сохраняет поля статуса state-snapshotter, и external-snapshotter v8.6.0."
+
+highlights:
+  - "Новая настройка `logLevel` задаёт, сколько пишет в лог snapshot-controller. По умолчанию он теперь работает на уровне `INFO` (klog `--v=2`), а не на фиксированном отладочном `--v=5`, поэтому простаивающий кластер больше не заполняет логи сообщениями по каждому объекту."
+  - "В DKP 1.78 и новее модуль поставляет роли `d8:system-capability:snapshot-controller:{view,edit}` и `d8:namespace-capability:snapshot-controller:{view,edit}` новой ролевой модели."
+
+new_features:
+  - "Настройка модуля `logLevel` (`ERROR`, `WARN`, `INFO`, `DEBUG`, `TRACE`, по умолчанию `INFO`) задаёт уровень подробности klog в snapshot-controller: `ERROR` — 0, `WARN` — 1, `INFO` — 2, `DEBUG` — 4, `TRACE` — 5."
+  - "В DKP 1.78 и новее модуль создаёт роли `d8:system-capability:snapshot-controller:view` и `d8:system-capability:snapshot-controller:edit`, которые дают доступ на чтение или запись к ModuleConfig `snapshot-controller` и к `VolumeSnapshotClass` и `VolumeSnapshotContent`, а также роли `d8:namespace-capability:snapshot-controller:view` и `d8:namespace-capability:snapshot-controller:edit` для `VolumeSnapshot` в неймспейсах. Они агрегируются в подсистему storage. В кластерах ниже DKP 1.78 остаются прежние роли `manage` и `use`."
+
+fixes:
+  - "CRD `VolumeSnapshot` модуля теперь объявляет флаги статуса `childSubtreesManifestsPersisted` и `childrenSettled`, которые пишет state-snapshotter, вместо прежнего `subtreeManifestsPersisted`. Раньше API-сервер отбрасывал эти поля, потому что схема их не знала."
+
+security:
+  - "Образы модуля пересобраны с версиями зависимостей, в которых исправлены уязвимости, найденные сканером, в том числе `golang.org/x/net` v0.62.0, `golang.org/x/crypto` v0.58.0, `google.golang.org/grpc` v1.83.2 и OpenTelemetry v1.45.0; `docker/distribution` больше не входит в хуки."
+
+upgrade_notes:
+  - "Обновление не требует ручных действий. snapshot-controller перезапустится с `--v=2`; чтобы вернуть прежний отладочный вывод, задайте `logLevel: TRACE` в ModuleConfig `snapshot-controller`."
+  - "Как и раньше, при включённом storage-foundation модуль ничего не создаёт, поэтому в таких кластерах обновление ничего не меняет."
+
+dependencies:
+  - name: external-snapshotter
+    from: "v8.5.0"
+    to: "v8.6.0"
+    changelog_url: "https://github.com/kubernetes-csi/external-snapshotter/releases/tag/v8.6.0"
+    notes: "snapshot-controller из основного проекта (апстрима), который поставляет модуль."
+  - name: base images
+    from: "v2.1.17"
+    to: "v4.0.12"
+    notes: "Все образы модуля пересобраны на container base v4, финальные образы — distroless."
+  - name: Go
+    from: "1.27.1"
+    to: "1.27.4"
+    notes: "Тулчейн (набор инструментов сборки), которым собираются контроллер, вебхуки и хуки."
+  - name: deckhouse_lib_helm
+    from: "1.72.22"
+    to: "1.72.34"
+    notes: "Helm-библиотека, которой рендерятся шаблоны модуля."
