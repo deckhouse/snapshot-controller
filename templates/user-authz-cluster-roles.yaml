@@ -22,6 +22,25 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   annotations:
+    user-authz.deckhouse.io/access-level: Editor
+  name: d8:user-authz:snapshot-controller:editor
+  {{- include "helm_lib_module_labels" (list .) | nindent 2 }}
+rules:
+- apiGroups:
+  - snapshot.storage.k8s.io
+  resources:
+  - volumesnapshots
+  verbs:
+  - create
+  - delete
+  - deletecollection
+  - patch
+  - update
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  annotations:
     user-authz.deckhouse.io/access-level: ClusterEditor
   name: d8:user-authz:snapshot-controller:cluster-editor
   {{- include "helm_lib_module_labels" (list .) | nindent 2 }}
@@ -30,7 +49,6 @@ rules:
   - snapshot.storage.k8s.io
   resources:
   - volumesnapshotclasses
-  - volumesnapshotcontents
   verbs:
   - get
   - list
@@ -43,7 +61,24 @@ rules:
 - apiGroups:
   - snapshot.storage.k8s.io
   resources:
-  - volumesnapshots
+  - volumesnapshotcontents
+  verbs:
+  - get
+  - list
+  - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  annotations:
+    user-authz.deckhouse.io/access-level: ClusterAdmin
+  name: d8:user-authz:snapshot-controller:cluster-admin
+  {{- include "helm_lib_module_labels" (list .) | nindent 2 }}
+rules:
+- apiGroups:
+  - snapshot.storage.k8s.io
+  resources:
+  - volumesnapshotcontents
   verbs:
   - create
   - delete

@@ -4,6 +4,15 @@ date: "2026-xx-xx"
 summary: ""
 highlights: []
 
+fixes:
+  - "Уровни доступа `Editor` и `Admin` текущей ролевой модели теперь могут создавать, изменять и удалять `VolumeSnapshot`: модуль добавляет роль `d8:user-authz:snapshot-controller:editor`. Раньше для записи `VolumeSnapshot` требовался `ClusterEditor`, хотя `Editor` может создавать `PersistentVolumeClaim`, а ни один из уровней, которые можно задать в `AuthorizationRule` пространства имён (они заканчиваются на `Admin`), его не включал. `VolumeSnapshotClass` по-прежнему доступен на запись начиная с `ClusterEditor`. Это действует, когда модуль storage-foundation выключен; при включённом storage-foundation уровни доступа задаёт storage-foundation (см. его список изменений)."
+
+security:
+  - "Уровень доступа `ClusterEditor` текущей ролевой модели больше не может создавать, изменять и удалять `VolumeSnapshotContent`, но по-прежнему читает их. `VolumeSnapshotContent` хранит идентификатор снимка в хранилище и определяет, к какому `VolumeSnapshot` он привязан, поэтому `ClusterEditor`, ограниченный частью пространств имён, мог привязать снимок тома из любого пространства имён к своему `VolumeSnapshot` и восстановить его. Теперь для записи нужен `ClusterAdmin` (новая роль `d8:user-authz:snapshot-controller:cluster-admin`) — так же Deckhouse оставляет `ClusterEditor` только чтение `PersistentVolume`. Новая ролевая модель не меняется: `manager` подсистемы хранения пишет `VolumeSnapshotContent` так же, как `PersistentVolume`, а в DKP ниже 1.78 их пишет и `manager` подсистемы инфраструктуры. Это действует, когда модуль storage-foundation выключен; при включённом storage-foundation уровни доступа задаёт storage-foundation (см. его список изменений)."
+
+breaking:
+  - "Создание, изменение и удаление `VolumeSnapshotContent` вручную — например, импорт существующего снимка хранилища как заранее созданного (pre-provisioned) `VolumeSnapshotContent` или смена его `deletionPolicy` — теперь требует `ClusterAdmin` или `SuperAdmin` в текущей ролевой модели либо `manager` подсистемы хранения (в DKP ниже 1.78 также `manager` подсистемы инфраструктуры) в новой вместо `ClusterEditor`. Снимки, которые создаются и удаляются через `VolumeSnapshot`, это не затрагивает. Это действует, когда модуль storage-foundation выключен; при включённом storage-foundation уровни доступа задаёт storage-foundation (см. его список изменений)."
+
 # Необязательные разделы — пустые не оставлять, а удалять.
 # new_features: []
 # improvements: []
