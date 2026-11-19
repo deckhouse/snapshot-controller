@@ -4,15 +4,6 @@ date: "2026-xx-xx"
 summary: ""
 highlights: []
 
-fixes:
-  - "The `Editor` and `Admin` access levels of the current role model can now create, change and delete `VolumeSnapshot` objects: the module adds the `d8:user-authz:snapshot-controller:editor` role. Before, writing a `VolumeSnapshot` took `ClusterEditor`, although `Editor` can create a `PersistentVolumeClaim`, and none of the levels an `AuthorizationRule` in a namespace can set, which end at `Admin`, included it. `VolumeSnapshotClass` stays writable from `ClusterEditor` up. This applies when storage-foundation is disabled; with storage-foundation enabled the access levels are set by storage-foundation (see its release notes)."
-
-security:
-  - "The `ClusterEditor` access level of the current role model can no longer create, change or delete `VolumeSnapshotContent` objects; it keeps reading them. A `VolumeSnapshotContent` holds the storage handle of a snapshot and decides which `VolumeSnapshot` it is bound to, so with it a `ClusterEditor` limited to some namespaces could bind a snapshot of a volume from any namespace to a `VolumeSnapshot` of its own and restore it. Writing them now takes `ClusterAdmin` (the new `d8:user-authz:snapshot-controller:cluster-admin` role), as Deckhouse leaves `ClusterEditor` only reading `PersistentVolume` objects. The new role model is unchanged: the storage `manager` writes `VolumeSnapshotContent` objects, as it writes `PersistentVolume` objects, and below DKP 1.78 the infrastructure `manager` writes them too. This applies when storage-foundation is disabled; with storage-foundation enabled the access levels are set by storage-foundation (see its release notes)."
-
-breaking:
-  - "Creating, changing or deleting a `VolumeSnapshotContent` by hand, for example to import an existing storage snapshot as a pre-provisioned `VolumeSnapshotContent` or to change its `deletionPolicy`, now needs `ClusterAdmin` or `SuperAdmin` in the current role model, or the storage `manager` (below DKP 1.78 also the infrastructure `manager`) in the new one, instead of `ClusterEditor`. Snapshots taken and deleted through `VolumeSnapshot` objects are not affected. This applies when storage-foundation is disabled; with storage-foundation enabled the access levels are set by storage-foundation (see its release notes)."
-
 # Optional sections — delete rather than leave empty.
 # new_features: []
 # improvements: []
